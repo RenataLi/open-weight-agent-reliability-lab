@@ -71,6 +71,7 @@ class RecommendedAction(StrEnum):
 class VerificationStatus(StrEnum):
     NOT_APPLICABLE = "not_applicable"
     PENDING = "pending"
+    CONTAINED = "contained"
     RECOVERED = "recovered"
     NOT_RECOVERED = "not_recovered"
 

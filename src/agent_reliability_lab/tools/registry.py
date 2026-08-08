@@ -92,7 +92,8 @@ def build_registry() -> dict[str, ToolSpec]:
             (
                 "Request an external decision bound to an exact action intent. For rollback, "
                 "arguments must contain service_id, from_deployment_id, and "
-                "target_deployment_id."
+                "target_deployment_id. For quarantine, arguments must contain data_source_id "
+                "and from_status."
             ),
             RequestApprovalArgs,
             ToolEffect.CONTROL,

@@ -59,14 +59,32 @@ flowchart TB
     O --> R
 ```
 
-There are two evaluation paths over the same simulator:
+There are three evidence layers over the same simulator:
 
 1. the reference runner executes all 12 committed trajectories and proves the deterministic
    contract is internally coherent;
-2. the model runner presents eight selected tasks to a local tool-calling model and grades the
-   observed outcome without requiring the reference call order.
+2. the M2 development set presents eight selected tasks to a local tool-calling model and grades
+   the observed outcome without requiring the reference call order;
+3. the M3 prospective set presents eight new tasks across three disjoint worlds through the same
+   runner and oracle for a preregistered contract and cross-stack comparison.
 
 Reference results and model results are deliberately distinct.
+
+## M3 study boundary
+
+The M3 runner sends an opaque `case-xxxxxxxx` handle instead of the semantic prospective task ID,
+so a label such as `APPROVED_ROLLBACK` cannot disclose the intended behavior. The intervention is
+restricted to a versioned system-prompt contract: v1 remains byte-stable, while v2 adds two
+general rules for declarative remediation and successful-read evidence. Task prompts, available
+tools, schemas, policy, simulator, outcome evaluator, and budgets remain identical within each
+paired comparison.
+
+The frozen matrix crosses two prompt contracts, two pinned inference stacks, five stochastic
+seeds, and eight tasks. The 160 stochastic outcomes are eligible for promotion gates; 32
+temperature-zero anchors are descriptive only. Seeds measure decoding stability. Because the
+eight tasks come from only three worlds, tasks are the generalization units and the study reports
+conditional paired summaries rather than IID confidence intervals or p-values. See the
+[M3 preregistration](M3_STUDY.md). No M3 model result is reported yet.
 
 ## Provider boundary
 
@@ -221,6 +239,17 @@ The local deployment pins:
 
 These controls support comparable runs, but they do not claim bitwise determinism from GPU
 inference. Hardware, driver, CUDA kernels, and serving implementation can still affect outputs.
+
+M3 adds a second pinned deployment:
+
+- [`mistralai/Ministral-3-8B-Instruct-2512-BF16`](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-BF16/tree/f6fae9795746f63c9be8344932f01275f3c63734)
+  at commit `f6fae9795746f63c9be8344932f01275f3c63734`;
+- the same immutable vLLM 0.26.0 image digest, with language-model-only loading, Mistral
+  tokenizer/config/load modes, BF16, and the `mistral` automatic tool-call parser.
+
+The cross-model axis is explicitly a comparison of full inference stacks: weights, tokenizer,
+chat template, serving configuration, and parser. It is not interpreted as an isolated
+weight-only causal effect.
 
 ## Trust boundaries
 

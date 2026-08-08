@@ -18,7 +18,7 @@ This project provides a reproducible MLOps incident-response world for those cas
 is deterministic, every tool has a strict schema, protected writes are policy-gated, and model
 runs are graded from observable outcomes rather than an LLM judge.
 
-## Current milestone
+## Milestone 2 implementation
 
 Milestone 2 connects the offline reliability core to a real local model boundary:
 
@@ -42,6 +42,16 @@ reference trajectories are not model results.
 > (87.5%) with zero infrastructure failures and zero unsafe-action attempts. Seven tasks passed
 > 5/5; `S06_APPROVED_ROLLBACK` passed 0/5, so the conjunctive promotion gate remains **false**.
 > See the [full result and failure analysis](reports/qwen35-9b-policy-aware-r5.md).
+
+## Milestone 3 preregistration
+
+M3 is now preregistered, but **no M3 model results exist yet**. The frozen design compares prompt
+contract v1 with a two-rule reporting clarification (v2) on an entity-disjoint, confirmatory
+eight-task prospective panel,
+using five paired stochastic seeds on two pinned open-weight inference stacks. The 160 stochastic
+task outcomes are scored; 32 temperature-zero anchors are descriptive only. Prospective task
+handles are opaque, model canaries use only the existing development suite, and the panel's first
+model exposure is scored. See the [controlled-study preregistration](docs/M3_STUDY.md).
 
 ## Frozen local-model result
 
@@ -78,8 +88,8 @@ flowchart LR
 
 The model never receives direct access to the host, Docker, credentials, or a real production
 system. It can only propose calls from the task-scoped simulator schemas. See
-[Architecture](docs/ARCHITECTURE.md), [Benchmark contract](docs/BENCHMARK.md), and
-[Model provider](docs/MODEL_PROVIDER.md).
+[Architecture](docs/ARCHITECTURE.md), [Benchmark contract](docs/BENCHMARK.md),
+[M3 study](docs/M3_STUDY.md), and [Model provider](docs/MODEL_PROVIDER.md).
 
 ## Quick start: deterministic core
 
@@ -166,6 +176,9 @@ prompt, tool schemas, lockfile, the safe provider URL, local Git state, model re
 sampling parameters, and whether an API key was present. It never stores the API-key value. Run
 IDs are exclusive: an existing directory is not overwritten.
 
+Exact study scores are computed from the typed `result.json`; `events.jsonl` is a flushed,
+hash-bound diagnostic stream rather than a separately reconstructed scoring ledger.
+
 ## What is measured
 
 - exact final-state success and report semantics;
@@ -199,6 +212,7 @@ src/agent_reliability_lab/
 ├── policy/        fail-closed approval evaluation
 ├── providers/     provider protocol and OpenAI-compatible httpx adapter
 ├── simulator/     deterministic execution, faults, hashing, and invariants
+├── study/         preregistered matrix, paired summaries, and promotion gates
 ├── tasks/         benchmark schema, runtime, and reference evaluator
 ├── tools/         typed schemas, handlers, and registry
 └── cli.py         reference and real-model commands
@@ -209,7 +223,7 @@ reports/            sanitized tracked results; raw transcripts remain local
 
 - **M1 — deterministic core:** complete.
 - **M2 — local model boundary and runner:** complete; frozen local GPU evidence reported.
-- **M3 — controlled study:** repeated policy and model comparisons with confidence intervals.
+- **M3 — controlled study:** preregistered; prospective inference and results are pending.
 - **M4 — production surface:** service API, observability, dashboards, and demo.
 
 ## Scope and limitations

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import subprocess
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -16,13 +17,29 @@ import httpx
 import typer
 from pydantic import JsonValue, ValidationError
 
-from agent_reliability_lab.agent.models import AgentPolicy, AgentRunConfig
+from agent_reliability_lab.agent.models import (
+    AgentPolicy,
+    AgentRunConfig,
+    PromptContractVersion,
+)
 from agent_reliability_lab.agent.persistence import RunStore
 from agent_reliability_lab.agent.prompt_sets import load_prompt_set, validate_prompt_set
 from agent_reliability_lab.agent.prompting import system_prompt
 from agent_reliability_lab.agent.suite import run_agent_suite
 from agent_reliability_lab.providers.base import ProviderError
 from agent_reliability_lab.providers.openai_compatible import OpenAICompatibleProvider
+from agent_reliability_lab.study import (
+    StudyArtifactError,
+    StudyPlan,
+    StudySpec,
+    build_study_plan,
+    build_study_report,
+    load_study_artifacts,
+    load_study_cell_artifact,
+    load_study_spec,
+    render_markdown_report,
+    verify_study_inputs,
+)
 from agent_reliability_lab.tasks.evaluator import load_suite, run_suite, validate_suite_contract
 from agent_reliability_lab.tasks.models import BenchmarkSuite
 from agent_reliability_lab.tools.registry import build_registry
@@ -35,8 +52,13 @@ app = typer.Typer(
 
 DEFAULT_SUITE = Path("benchmarks/smoke_suite.json")
 DEFAULT_PROMPTS = Path("benchmarks/model_prompts_v1.json")
+DEFAULT_DEPLOYMENT_COMPOSE = Path("deploy/compose.gpu.yml")
+DEFAULT_STUDY_PROTOCOL = Path("studies/m3_protocol.json")
+DEFAULT_STUDY_CELLS = Path("runs/m3-controlled-contract-study-v1/cells")
 agent_app = typer.Typer(help="Run real model-driven evaluations against the simulator.")
+study_app = typer.Typer(help="Validate, plan, and aggregate a preregistered model study.")
 app.add_typer(agent_app, name="agent")
+app.add_typer(study_app, name="study")
 
 
 def _load_or_exit(path: Path) -> BenchmarkSuite:
@@ -200,8 +222,7 @@ def _command_output(arguments: list[str], *, cwd: Path | None = None) -> str | N
     return value or None
 
 
-def _compose_image_reference(project_root: Path) -> str | None:
-    compose_path = project_root / "deploy" / "compose.gpu.yml"
+def _compose_image_reference(compose_path: Path) -> str | None:
     if not compose_path.is_file():
         return None
     for line in compose_path.read_text(encoding="utf-8").splitlines():
@@ -209,6 +230,20 @@ def _compose_image_reference(project_root: Path) -> str | None:
         if stripped.startswith("image:"):
             return stripped.partition(":")[2].strip() or None
     return None
+
+
+def _resolve_project_file(project_root: Path, path: Path, *, label: str) -> Path:
+    """Resolve a declared project input without allowing provenance to escape the repository."""
+
+    root = project_root.resolve()
+    candidate = (root / path).resolve() if not path.is_absolute() else path.resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"{label} must be inside the project directory") from exc
+    if not candidate.is_file():
+        raise ValueError(f"{label} file not found: {path}")
+    return candidate
 
 
 def _docker_model_provenance() -> dict[str, JsonValue]:
@@ -221,6 +256,7 @@ def _docker_model_provenance() -> dict[str, JsonValue]:
         ["docker", "inspect", "--format", "{{json .Config.Cmd}}", container]
     )
     safe_arguments = _safe_vllm_arguments(command_json)
+    command_sha256 = _sanitized_container_command_sha256(command_json)
     repo_digests_json = (
         _command_output(
             ["docker", "image", "inspect", image_id, "--format", "{{json .RepoDigests}}"]
@@ -231,6 +267,7 @@ def _docker_model_provenance() -> dict[str, JsonValue]:
     return {
         "observed_container_image_id": image_id,
         "observed_container_image_reference": configured_image,
+        "observed_container_command_sha256": command_sha256,
         "observed_vllm_arguments": safe_arguments or None,
         "observed_vllm_arguments_sha256": (
             _json_digest(safe_arguments) if safe_arguments else None
@@ -253,14 +290,20 @@ def _safe_vllm_arguments(command_json: str | None) -> dict[str, JsonValue]:
     value_flags = {
         "--model",
         "--revision",
+        "--tokenizer-revision",
+        "--tokenizer-mode",
+        "--config-format",
+        "--load-format",
         "--served-model-name",
         "--dtype",
         "--max-model-len",
         "--gpu-memory-utilization",
         "--max-num-seqs",
+        "--max-num-batched-tokens",
         "--generation-config",
         "--tool-call-parser",
         "--reasoning-parser",
+        "--seed",
         "--host",
         "--port",
     }
@@ -282,6 +325,54 @@ def _safe_vllm_arguments(command_json: str | None) -> dict[str, JsonValue]:
             observed[item.removeprefix("--")] = True
         index += 1
     return observed
+
+
+def _sanitized_container_command_sha256(command_json: str | None) -> str | None:
+    """Hash complete Docker argv while replacing credential values with a fixed sentinel."""
+
+    if command_json is None:
+        return None
+    try:
+        command = json.loads(command_json)
+    except ValueError:
+        return None
+    if (
+        not isinstance(command, list)
+        or not command
+        or not all(isinstance(item, str) for item in command)
+    ):
+        return None
+
+    def sensitive(flag: str) -> bool:
+        normalized = flag.casefold().lstrip("-").split("=", 1)[0]
+        segments = set(re.split(r"[-_]", normalized))
+        return bool(
+            "password" in segments
+            or "secret" in segments
+            or "credential" in segments
+            or "auth" in segments
+            or normalized in {"api-key", "api_key", "token", "access-token", "auth-token"}
+            or normalized.endswith(("-token", "_token"))
+        )
+
+    sanitized = list(command)
+    index = 0
+    while index < len(sanitized):
+        item = sanitized[index]
+        if item.startswith("-") and "=" in item:
+            flag, _, _ = item.partition("=")
+            if sensitive(flag):
+                sanitized[index] = f"{flag}=<redacted>"
+            index += 1
+            continue
+        if item.startswith("-") and sensitive(item):
+            if index + 1 >= len(sanitized) or sanitized[index + 1].startswith("-"):
+                return None
+            sanitized[index + 1] = "<redacted>"
+            index += 2
+            continue
+        index += 1
+    return _json_digest(sanitized)
 
 
 def _vllm_server_version(base_url: str, api_key: str | None) -> str | None:
@@ -307,6 +398,174 @@ def _tool_schema_digest() -> str:
     return _json_digest(schemas)
 
 
+def _load_verified_study(protocol_path: Path) -> tuple[StudySpec, StudyPlan]:
+    spec = load_study_spec(protocol_path)
+    verify_study_inputs(spec, _project_root())
+    return spec, build_study_plan(spec)
+
+
+def _write_immutable_text(path: Path, content: str) -> None:
+    """Create an immutable generated artifact, accepting only a byte-identical repeat."""
+
+    if path.is_file():
+        if path.read_text(encoding="utf-8") != content:
+            raise ValueError(f"refusing to overwrite a different artifact: {path}")
+        return
+    if path.exists():
+        raise ValueError(f"artifact path is not a file: {path}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8", newline="\n") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+@study_app.command("validate")
+def study_validate(
+    protocol_path: Annotated[
+        Path,
+        typer.Argument(help="Preregistered study protocol JSON."),
+    ] = DEFAULT_STUDY_PROTOCOL,
+) -> None:
+    """Verify every frozen input and expand the exact study matrix."""
+
+    try:
+        spec, plan = _load_verified_study(protocol_path)
+    except (FileNotFoundError, OSError, ValidationError, ValueError) as exc:
+        typer.echo(f"Invalid study protocol: {exc}", err=True)
+        raise typer.Exit(2) from None
+    typer.echo(
+        f"Validated {spec.study_id}: {len(plan.cells)} cells, "
+        f"{plan.stochastic_task_runs} scored + {plan.greedy_anchor_task_runs} descriptive runs"
+    )
+    typer.echo(f"Protocol SHA-256: {plan.protocol_sha256}")
+
+
+@study_app.command("plan")
+def study_plan(
+    protocol_path: Annotated[
+        Path,
+        typer.Argument(help="Preregistered study protocol JSON."),
+    ] = DEFAULT_STUDY_PROTOCOL,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", help="Write the immutable expanded plan JSON."),
+    ] = None,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Emit the complete plan to stdout."),
+    ] = False,
+) -> None:
+    """Expand the preregistered Cartesian matrix in execution order."""
+
+    try:
+        _, plan = _load_verified_study(protocol_path)
+        payload = json.dumps(
+            plan.model_dump(mode="json"),
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+        )
+        if output is not None:
+            _write_immutable_text(output, f"{payload}\n")
+    except (FileNotFoundError, OSError, ValidationError, ValueError) as exc:
+        typer.echo(f"Cannot build study plan: {exc}", err=True)
+        raise typer.Exit(2) from None
+    if json_output:
+        typer.echo(payload)
+    else:
+        typer.echo(f"Planned {len(plan.cells)} immutable cells ({plan.total_task_runs} task runs)")
+        if output is not None:
+            typer.echo(f"Plan: {output}")
+
+
+@study_app.command("report")
+def study_report(
+    protocol_path: Annotated[
+        Path,
+        typer.Argument(help="Preregistered study protocol JSON."),
+    ] = DEFAULT_STUDY_PROTOCOL,
+    cells_dir: Annotated[
+        Path,
+        typer.Option("--cells-dir", help="Directory containing immutable per-cell artifacts."),
+    ] = DEFAULT_STUDY_CELLS,
+    output_dir: Annotated[
+        Path | None,
+        typer.Option("--output-dir", help="Destination for aggregate JSON and Markdown."),
+    ] = None,
+) -> None:
+    """Fail closed on a partial matrix, then compute preregistered gates and paired metrics."""
+
+    try:
+        spec, plan = _load_verified_study(protocol_path)
+        artifacts = load_study_artifacts(spec, plan, cells_dir)
+        report = build_study_report(spec, plan, artifacts)
+        destination = output_dir or cells_dir.parent
+        result_payload = json.dumps(
+            report.model_dump(mode="json"),
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=2,
+        )
+        _write_immutable_text(destination / "study-result.json", f"{result_payload}\n")
+        _write_immutable_text(destination / "report.md", render_markdown_report(report))
+    except (
+        FileNotFoundError,
+        OSError,
+        StudyArtifactError,
+        ValidationError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Cannot aggregate study: {exc}", err=True)
+        raise typer.Exit(2) from None
+    typer.echo(
+        f"M3 promotion gate: {'PASS' if report.promotion_passed else 'FAIL'}; "
+        f"artifacts: {destination}"
+    )
+    if not report.promotion_passed:
+        raise typer.Exit(1)
+
+
+@study_app.command("validate-cell")
+def study_validate_cell(
+    cell_id: Annotated[str, typer.Argument(help="Exact cell ID from the frozen plan.")],
+    protocol_path: Annotated[
+        Path,
+        typer.Option("--protocol", help="Preregistered study protocol JSON."),
+    ] = DEFAULT_STUDY_PROTOCOL,
+    cells_dir: Annotated[
+        Path,
+        typer.Option("--cells-dir", help="Directory containing immutable per-cell artifacts."),
+    ] = DEFAULT_STUDY_CELLS,
+) -> None:
+    """Validate one completed cell before a resume operation may skip it."""
+
+    try:
+        spec, plan = _load_verified_study(protocol_path)
+        cell = next((item for item in plan.cells if item.cell_id == cell_id), None)
+        if cell is None:
+            raise ValueError(f"cell is not in the frozen plan: {cell_id}")
+        artifact = load_study_cell_artifact(spec, cell, cells_dir)
+    except (
+        FileNotFoundError,
+        OSError,
+        StudyArtifactError,
+        ValidationError,
+        ValueError,
+    ) as exc:
+        typer.echo(f"Invalid study cell: {exc}", err=True)
+        raise typer.Exit(2) from None
+    typer.echo(
+        f"Validated {cell_id}: {artifact.result.passed_runs}/{artifact.result.total_runs} "
+        f"task outcomes passed"
+    )
+
+
 @agent_app.command("run")
 def agent_run(
     suite_path: Annotated[Path, typer.Argument(help="Benchmark suite JSON.")] = DEFAULT_SUITE,
@@ -314,6 +573,13 @@ def agent_run(
         Path,
         typer.Option("--prompts", help="Agent-facing prompt set JSON."),
     ] = DEFAULT_PROMPTS,
+    deployment_compose: Annotated[
+        Path,
+        typer.Option(
+            "--deployment-compose",
+            help="Project-relative Compose file used to serve the selected model.",
+        ),
+    ] = DEFAULT_DEPLOYMENT_COMPOSE,
     task_id: Annotated[
         str | None,
         typer.Option("--task-id", help="Run one prompt task as a canary."),
@@ -328,6 +594,13 @@ def agent_run(
         typer.Option("--model-revision", help="Immutable model revision recorded in artifacts."),
     ] = None,
     policy: Annotated[AgentPolicy, typer.Option("--policy")] = AgentPolicy.POLICY_AWARE,
+    contract_version: Annotated[
+        PromptContractVersion | None,
+        typer.Option(
+            "--contract-version",
+            help="Override the versioned system reporting contract declared by the prompt set.",
+        ),
+    ] = None,
     repetitions: Annotated[int, typer.Option("--repetitions", min=1)] = 1,
     seed: Annotated[int, typer.Option("--seed", min=0)] = 42,
     temperature: Annotated[float, typer.Option("--temperature", min=0.0, max=2.0)] = 0.0,
@@ -348,6 +621,12 @@ def agent_run(
 
     try:
         safe_url = _safe_base_url(base_url)
+        project_root = _project_root()
+        compose_path = _resolve_project_file(
+            project_root,
+            deployment_compose,
+            label="deployment compose",
+        )
         normalized_model = model.strip()
         if not normalized_model:
             raise ValueError("model must not be empty")
@@ -355,6 +634,8 @@ def agent_run(
         validate_suite_contract(suite)
         prompt_set = load_prompt_set(prompt_set_path)
         validate_prompt_set(prompt_set, suite)
+        if contract_version is not None:
+            prompt_set = prompt_set.model_copy(update={"contract_version": contract_version})
         if task_id is not None:
             matching_tasks = tuple(task for task in suite.tasks if task.task_id == task_id)
             prompt = prompt_set.tasks.get(task_id)
@@ -399,9 +680,7 @@ def agent_run(
             raise typer.Exit(3) from None
 
         try:
-            project_root = _project_root()
             uv_lock = project_root / "uv.lock"
-            compose_path = project_root / "deploy" / "compose.gpu.yml"
             git_commit, git_dirty = _git_provenance(project_root)
             docker_provenance = _docker_model_provenance()
             observed_vllm_arguments = docker_provenance["observed_vllm_arguments"]
@@ -412,7 +691,10 @@ def agent_run(
                 "suite_sha256": _file_digest(suite_path),
                 "prompt_set_id": prompt_set.prompt_set_id,
                 "prompt_set_sha256": _file_digest(prompt_set_path),
-                "system_prompt_sha256": _json_digest(system_prompt(policy)),
+                "contract_version": prompt_set.contract_version,
+                "system_prompt_sha256": _json_digest(
+                    system_prompt(policy, prompt_set.contract_version)
+                ),
                 "tool_schemas_sha256": _tool_schema_digest(),
                 "uv_lock_sha256": _file_digest(uv_lock) if uv_lock.is_file() else None,
                 "git_commit": git_commit,
@@ -429,10 +711,9 @@ def agent_run(
                 "docker_server_version": _command_output(
                     ["docker", "version", "--format", "{{.Server.Version}}"]
                 ),
-                "vllm_image_reference": _compose_image_reference(project_root),
-                "deployment_compose_sha256": (
-                    _file_digest(compose_path) if compose_path.is_file() else None
-                ),
+                "vllm_image_reference": _compose_image_reference(compose_path),
+                "deployment_compose_path": compose_path.relative_to(project_root).as_posix(),
+                "deployment_compose_sha256": _file_digest(compose_path),
                 "task_id": task_id,
                 "model": normalized_model,
                 "model_revision": model_revision,

@@ -95,7 +95,8 @@ class RequestApprovalArgs(StrictModel):
     arguments: dict[str, JsonValue] = Field(
         description=(
             "Canonical action binding. For rollback_deployment provide exactly service_id, "
-            "from_deployment_id, and target_deployment_id. Do not include expected_revision, "
+            "from_deployment_id, and target_deployment_id. For quarantine_data_source provide "
+            "exactly data_source_id and from_status. Do not include expected_revision, "
             "idempotency_key, or approval_id."
         )
     )
@@ -121,6 +122,20 @@ class RequestApprovalArgs(StrictModel):
                 for key in required
             ):
                 raise ValueError("rollback binding values must be non-empty strings")
+        elif self.tool_name == "quarantine_data_source":
+            required = {"data_source_id", "from_status"}
+            if set(self.arguments) != required:
+                raise ValueError(
+                    "quarantine_data_source arguments must contain exactly data_source_id "
+                    "and from_status"
+                )
+            if self.arguments["data_source_id"] != self.resource_id:
+                raise ValueError("quarantine data_source_id must equal resource_id")
+            if any(
+                not isinstance(self.arguments[key], str) or not self.arguments[key]
+                for key in required
+            ):
+                raise ValueError("quarantine binding values must be non-empty strings")
         return self
 
 
@@ -161,9 +176,11 @@ class SubmitIncidentReportArgs(StrictModel):
     )
     verification: VerificationStatus = Field(
         description=(
-            "Use pending when a recommended remediation has not run; recovered only after a "
-            "post-remediation read proves recovery; not_recovered only after a remediation and "
-            "post-remediation read prove failure; not_applicable for a false-positive alert."
+            "Use pending when a recommended remediation has not run; contained only after "
+            "quarantine and a fresh read confirms the source is quarantined but service recovery "
+            "is not established; recovered only after remediation and a fresh health read prove "
+            "recovery; not_recovered only after remediation and a post-remediation read prove "
+            "failure; not_applicable for a false-positive alert."
         )
     )
     evidence_call_ids: tuple[Identifier, ...] = Field(

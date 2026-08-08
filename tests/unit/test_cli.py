@@ -8,13 +8,18 @@ import pytest
 from typer.testing import CliRunner
 
 from agent_reliability_lab.agent.models import AgentSuiteResult
-from agent_reliability_lab.cli import _safe_vllm_arguments, app
+from agent_reliability_lab.cli import (
+    _safe_vllm_arguments,
+    _sanitized_container_command_sha256,
+    app,
+)
 from agent_reliability_lab.providers.base import ProviderError, ProviderErrorCode
 
 runner = CliRunner()
 ROOT = Path(__file__).parents[2]
 SUITE = ROOT / "benchmarks" / "smoke_suite.json"
 PROMPTS = ROOT / "benchmarks" / "model_prompts_v1.json"
+STUDY_PROTOCOL = ROOT / "studies" / "m3_protocol.json"
 
 
 class _FakeProvider:
@@ -65,6 +70,7 @@ def _passing_agent_result(**kwargs: Any) -> AgentSuiteResult:
     return AgentSuiteResult(
         suite_id=suite.suite_id,
         prompt_set_id=prompt_set.prompt_set_id,
+        contract_version=prompt_set.contract_version,
         model=provider.model,
         provider_base_url=kwargs["provider_base_url"],
         policy=config.policy,
@@ -134,6 +140,98 @@ def test_tool_schemas_are_machine_readable() -> None:
     }
 
 
+def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path) -> None:
+    validated = runner.invoke(app, ["study", "validate", str(STUDY_PROTOCOL)])
+    assert validated.exit_code == 0
+    assert "24 cells" in validated.stdout
+    assert "160 scored + 32 descriptive" in validated.stdout
+    assert "3738f4ea16279e827a868b82f2515fa2371cdebdb693828e1d6c3ec433c3911b" in (validated.stdout)
+
+    output = tmp_path / "study-plan.json"
+    planned = runner.invoke(
+        app,
+        ["study", "plan", str(STUDY_PROTOCOL), "--output", str(output), "--json"],
+    )
+    assert planned.exit_code == 0
+    payload = json.loads(planned.stdout)
+    assert payload["total_task_runs"] == 192
+    assert len(payload["cells"]) == 24
+    assert json.loads(output.read_text(encoding="utf-8")) == payload
+
+    repeated = runner.invoke(
+        app,
+        ["study", "plan", str(STUDY_PROTOCOL), "--output", str(output)],
+    )
+    assert repeated.exit_code == 0
+
+
+def test_study_plan_refuses_to_overwrite_different_artifact(tmp_path: Path) -> None:
+    output = tmp_path / "study-plan.json"
+    output.write_text("{}\n", encoding="utf-8")
+
+    result = runner.invoke(
+        app,
+        ["study", "plan", str(STUDY_PROTOCOL), "--output", str(output)],
+    )
+
+    assert result.exit_code == 2
+    assert "refusing to overwrite" in result.stderr
+    assert output.read_text(encoding="utf-8") == "{}\n"
+
+
+def test_study_report_fails_closed_on_partial_matrix(tmp_path: Path) -> None:
+    output = tmp_path / "aggregate"
+
+    result = runner.invoke(
+        app,
+        [
+            "study",
+            "report",
+            str(STUDY_PROTOCOL),
+            "--cells-dir",
+            str(tmp_path / "cells"),
+            "--output-dir",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "required study artifact is missing" in result.stderr
+    assert not output.exists()
+
+
+def test_study_validate_cell_rejects_unknown_or_missing_cell(tmp_path: Path) -> None:
+    unknown = runner.invoke(
+        app,
+        [
+            "study",
+            "validate-cell",
+            "m3s-not-in-plan-v1-s00000011-r01",
+            "--protocol",
+            str(STUDY_PROTOCOL),
+            "--cells-dir",
+            str(tmp_path),
+        ],
+    )
+    assert unknown.exit_code == 2
+    assert "not in the frozen plan" in unknown.stderr
+
+    missing = runner.invoke(
+        app,
+        [
+            "study",
+            "validate-cell",
+            "m3s-qwen35-9b-v1-s00000011-r01",
+            "--protocol",
+            str(STUDY_PROTOCOL),
+            "--cells-dir",
+            str(tmp_path),
+        ],
+    )
+    assert missing.exit_code == 2
+    assert "required study artifact is missing" in missing.stderr
+
+
 def test_docker_command_provenance_allowlists_flags_without_secrets() -> None:
     command = json.dumps(
         [
@@ -141,6 +239,14 @@ def test_docker_command_provenance_allowlists_flags_without_secrets() -> None:
             "Qwen/model",
             "--revision",
             "immutable-sha",
+            "--tokenizer-revision",
+            "immutable-tokenizer-sha",
+            "--tokenizer-mode",
+            "mistral",
+            "--max-num-batched-tokens",
+            "8192",
+            "--seed",
+            "0",
             "--api-key",
             "do-not-persist-me",
             "--language-model-only",
@@ -152,9 +258,53 @@ def test_docker_command_provenance_allowlists_flags_without_secrets() -> None:
     assert observed == {
         "model": "Qwen/model",
         "revision": "immutable-sha",
+        "tokenizer-revision": "immutable-tokenizer-sha",
+        "tokenizer-mode": "mistral",
+        "max-num-batched-tokens": "8192",
+        "seed": "0",
         "language-model-only": True,
     }
     assert "do-not-persist-me" not in json.dumps(observed)
+
+
+def test_complete_container_command_hash_redacts_secrets_and_binds_unknown_flags() -> None:
+    first = json.dumps(
+        [
+            "--model",
+            "model-a",
+            "--api-key",
+            "first-secret",
+            "--future-behavior-flag=enabled",
+            "--hf-token=another-secret",
+        ]
+    )
+    rotated_secrets = json.dumps(
+        [
+            "--model",
+            "model-a",
+            "--api-key",
+            "rotated-secret",
+            "--future-behavior-flag=enabled",
+            "--hf-token=rotated-token",
+        ]
+    )
+    changed_behavior = json.dumps(
+        [
+            "--model",
+            "model-a",
+            "--api-key",
+            "first-secret",
+            "--future-behavior-flag=disabled",
+            "--hf-token=another-secret",
+        ]
+    )
+
+    first_digest = _sanitized_container_command_sha256(first)
+
+    assert first_digest is not None and len(first_digest) == 64
+    assert first_digest == _sanitized_container_command_sha256(rotated_secrets)
+    assert first_digest != _sanitized_container_command_sha256(changed_behavior)
+    assert _sanitized_container_command_sha256('["--api-key"]') is None
 
 
 def test_failed_benchmark_returns_one_and_prints_failed_check(tmp_path: Path) -> None:
@@ -200,6 +350,29 @@ def test_agent_run_rejects_blank_model_without_artifacts(tmp_path: Path) -> None
     assert result.exit_code == 2
     assert "model must not be empty" in result.stderr
     assert "Traceback" not in result.stderr
+    assert not output_dir.exists()
+
+
+def test_agent_run_rejects_compose_outside_project_before_network(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("agent_reliability_lab.cli.OpenAICompatibleProvider", _FakeProvider)
+    project_root = tmp_path / "project"
+    project_root.mkdir()
+    monkeypatch.setattr("agent_reliability_lab.cli._project_root", lambda: project_root)
+    outside = tmp_path / "compose.yml"
+    outside.write_text("services: {}\n", encoding="utf-8")
+    output_dir = tmp_path / "runs"
+
+    result = runner.invoke(
+        app,
+        [*_agent_args(output_dir), "--deployment-compose", str(outside)],
+    )
+
+    assert result.exit_code == 2
+    assert "deployment compose must be inside the project directory" in result.stderr
+    assert not _FakeProvider.instances
     assert not output_dir.exists()
 
 
@@ -314,6 +487,8 @@ def test_agent_run_filters_canary_and_persists_preflight_provenance(
     assert manifest["timeout_seconds"] == 300.0
     assert manifest["provider_attempts"] == 2
     assert manifest["provider_backoff_seconds"] == 0.25
+    assert manifest["contract_version"] == "v1"
+    assert manifest["deployment_compose_path"] == "deploy/compose.gpu.yml"
     assert "@sha256:" in manifest["vllm_image_reference"]
     assert len(manifest["deployment_compose_sha256"]) == 64
     for field in (
@@ -327,3 +502,43 @@ def test_agent_run_filters_canary_and_persists_preflight_provenance(
     assert len(_FakeProvider.instances) == 1
     assert _FakeProvider.instances[0].preflight_calls == 1
     assert _FakeProvider.instances[0].closed is True
+
+
+def test_agent_run_contract_override_is_persisted(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("agent_reliability_lab.cli.OpenAICompatibleProvider", _FakeProvider)
+    monkeypatch.setattr(
+        "agent_reliability_lab.cli.run_agent_suite",
+        lambda suite, prompt_set, provider, config, **kwargs: _passing_agent_result(
+            suite=suite,
+            prompt_set=prompt_set,
+            provider=provider,
+            config=config,
+            **kwargs,
+        ),
+    )
+    output_dir = tmp_path / "runs"
+
+    result = runner.invoke(
+        app,
+        [
+            *_agent_args(output_dir),
+            "--model",
+            "test-model",
+            "--contract-version",
+            "v2",
+            "--run-id",
+            "contract-v2",
+        ],
+    )
+
+    assert result.exit_code == 0
+    manifest = json.loads((output_dir / "contract-v2" / "manifest.json").read_text("utf-8"))
+    result_payload = json.loads((output_dir / "contract-v2" / "result.json").read_text("utf-8"))
+    assert manifest["contract_version"] == "v2"
+    assert result_payload["contract_version"] == "v2"
+    assert manifest["system_prompt_sha256"] != (
+        "4843d9ffe75650553e19b9117558685a38436f043a1c089bd8add8e5300e716e"
+    )

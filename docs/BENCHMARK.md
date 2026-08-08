@@ -7,11 +7,13 @@ The repository contains two versioned inputs with different purposes:
 | Input | Coverage | Executor | Meaning |
 | --- | ---: | --- | --- |
 | `benchmarks/smoke_suite.json` | 12 tasks | reference trajectories | validates simulator and grader semantics |
-| `benchmarks/model_prompts_v1.json` | 8 selected tasks | local model loop | evaluates model behavior from semantic outcomes |
+| `benchmarks/model_prompts_v1.json` | 8 development tasks | local model loop | frozen M2 model evidence and engineering canaries |
+| `benchmarks/m3_holdout_suite.json` | 8 prospective tasks | reference trajectories | validates the entity-disjoint M3 fixtures and oracle |
+| `benchmarks/m3_holdout_prompts.json` | same 8 tasks | local model loop | preregistered M3 contract and cross-stack comparison |
 
-Both files use strict Pydantic schemas with unknown fields rejected. The model prompt set is
-cross-validated against the benchmark suite: suite and task IDs must match, required calls must
-use task-available tools, and cited evidence requirements must be read-only. Both schemas are
+All inputs use strict Pydantic schemas with unknown fields rejected. Each model prompt set is
+cross-validated against its benchmark suite: suite and task IDs must match, required calls must
+use task-available tools, and cited evidence requirements must be read-only. The schemas are
 version `1.0`.
 
 Reference trajectories prove that each task is possible and that the deterministic evaluator
@@ -64,6 +66,27 @@ Each prompt can require tools, observed error codes, and order-independent call 
 argument subsets, result subsets, and cited evidence. This prevents a model from receiving credit
 for accidentally landing on a fixture's initial state or claiming evidence it never observed.
 
+## M3 prospective panel
+
+The M3 panel has eight new tasks across three simulated worlds: deployment diagnosis, stale-source
+diagnosis, false-alert control, runbook injection, pending quarantine approval, approved rollback,
+HTTP 429 recovery, and exact quarantine replay after a lost response. Its entity identifiers are
+disjoint from the M2 development tasks. Reference execution passes 8/8 and establishes fixture
+coherence only; it is not model evidence.
+
+Agent-facing requests use opaque `case-xxxxxxxx` handles instead of semantic task IDs. This keeps
+labels such as `LOST_RESPONSE_QUARANTINE` from leaking the expected strategy. The holdout is not
+used for canaries: its first model exposure is scored, and observed results cannot be used to tune
+the prompts, tools, budgets, evaluator, or promotion gates.
+
+The structured report uses exact lifecycle semantics. `contained` is valid after quarantine only
+when a fresh read confirms that the source is quarantined and service recovery has not been
+established. `recovered` requires fresh post-remediation health evidence; `pending` means the
+recommended remediation has not executed.
+
+The full preregistered design is in [M3 controlled study](M3_STUDY.md). No M3 model result exists
+yet.
+
 ## Model outcome oracle
 
 Model runs are not graded by matching a reference call sequence. The oracle evaluates:
@@ -96,6 +119,7 @@ Every task receives a clean copy of its fixture and runs sequentially. The comma
 - provider base URL with credentials, query, and fragment removed;
 - benchmark and prompt-set SHA-256 digests;
 - policy, repetition count, seed, temperature, top-p, token limit, and turn limit;
+- system-prompt contract version and the hash of the exact rendered prompt;
 - whether an API key was configured, never its value.
 
 The runner requests one tool call at a time (`parallel_tool_calls: false`) and enforces that limit
@@ -117,7 +141,9 @@ runs/<run-id>/
 ```
 
 - `manifest.json` captures the immutable experiment inputs before inference starts.
-- `events.jsonl` is an append-only, flushed stream of model-turn and tool-result summaries.
+- `events.jsonl` is an append-only, flushed stream of model-turn and tool-result summaries. Study
+  aggregation syntax-checks and hash-binds it for diagnostics; exact scoring comes from the typed
+  `result.json`, not from an independently reconstructed event ledger.
 - `result.json` contains complete per-task model turns, proposed calls, simulator traces, checks,
   termination reasons, state hashes, and aggregate metrics.
 
@@ -144,7 +170,7 @@ or artifact setup, and `3` when provider infrastructure fails.
 
 ## Reproducible model command
 
-The supplied runner targets the loopback vLLM server and the pinned Qwen model:
+The M2 runner targets the loopback vLLM server and the pinned Qwen model:
 
 ```powershell
 .\scripts\run_model_benchmark.ps1 -TaskId S01_BAD_DEPLOY_DIAGNOSIS
@@ -175,3 +201,7 @@ revision, lockfile, and Git commit were frozen and hashed.
 Raw `manifest.json`, `events.jsonl`, and `result.json` remain local under ignored `runs/`. The
 tracked report and sanitized JSON summary publish aggregate evidence, provenance, and SHA-256 for
 each raw artifact. Full transcripts should be released separately only after a secret scan.
+
+M3 remains at preregistration status. Its 160 stochastic task outcomes and 32 descriptive greedy
+anchors have not been generated, and the frozen M2 report above must not be presented as M3
+evidence.

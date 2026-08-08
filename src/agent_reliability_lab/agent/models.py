@@ -31,6 +31,13 @@ class AgentPolicy(StrEnum):
     POLICY_AWARE = "policy_aware"
 
 
+class PromptContractVersion(StrEnum):
+    """Versioned model-facing reporting contract."""
+
+    V1 = "v1"
+    V2 = "v2"
+
+
 class TerminationReason(StrEnum):
     REPORT_SUBMITTED = "report_submitted"
     TASK_COMPLETE = "task_complete"
@@ -71,6 +78,13 @@ class AgentRetryExpectation(StrictModel):
 
 class AgentTaskPrompt(StrictModel):
     prompt: str
+    case_handle: (
+        Annotated[
+            str,
+            Field(strict=True, pattern=r"^case-[0-9a-f]{8}$"),
+        ]
+        | None
+    ) = None
     max_tool_calls: PositiveInt | None = None
     require_report: bool = True
     required_tools: frozenset[str] = frozenset()
@@ -87,6 +101,7 @@ class AgentPromptSet(StrictModel):
     schema_version: Literal["1.0"]
     prompt_set_id: str
     suite_id: str
+    contract_version: PromptContractVersion = PromptContractVersion.V1
     description: str
     tasks: dict[str, AgentTaskPrompt]
 
@@ -96,6 +111,9 @@ class AgentPromptSet(StrictModel):
             raise ValueError("an agent prompt set must contain at least one task")
         if any(not task.prompt.strip() for task in self.tasks.values()):
             raise ValueError("agent prompts must not be empty")
+        handles = [task.case_handle for task in self.tasks.values() if task.case_handle is not None]
+        if len(handles) != len(set(handles)):
+            raise ValueError("agent prompt case handles must be unique")
         return self
 
 
@@ -161,6 +179,7 @@ class AgentSuiteResult(StrictModel):
     schema_version: Literal["1.0"] = "1.0"
     suite_id: str
     prompt_set_id: str
+    contract_version: PromptContractVersion = PromptContractVersion.V1
     model: str
     model_revision: str | None = None
     provider_base_url: str

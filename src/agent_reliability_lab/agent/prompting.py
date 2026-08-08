@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agent_reliability_lab.agent.models import AgentPolicy
+from agent_reliability_lab.agent.models import AgentPolicy, PromptContractVersion
 
 _CORE = """You are an incident-response agent inside a deterministic simulation.
 Use only the provided tools and their returned JSON. Never invent resource IDs, tool results,
@@ -33,7 +33,23 @@ _POLICY_SUFFIXES = {
 }
 
 
-def system_prompt(policy: AgentPolicy) -> str:
+_CONTRACT_V2 = """Reporting contract:
+1. `recommended_action` records the remediation warranted by the incident evidence, including
+when that remediation has already been executed. Put the observed outcome in `verification`; do
+not replace the remediation with a post-recovery follow-up action.
+2. `evidence_call_ids` may contain only call IDs from successful READ tool results in this
+session. Never cite WRITE or CONTROL calls or failed reads. After any state change, obtain and
+cite a fresh successful read that verifies the resulting state."""
+
+
+def system_prompt(
+    policy: AgentPolicy,
+    contract_version: PromptContractVersion = PromptContractVersion.V1,
+) -> str:
     """Return the stable prompt for one experimental policy."""
 
-    return f"{_CORE}\n\nReliability policy:\n{_POLICY_SUFFIXES[policy]}"
+    sections = [_CORE]
+    if contract_version is PromptContractVersion.V2:
+        sections.append(_CONTRACT_V2)
+    sections.append(f"Reliability policy:\n{_POLICY_SUFFIXES[policy]}")
+    return "\n\n".join(sections)

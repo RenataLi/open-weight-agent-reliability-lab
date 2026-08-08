@@ -45,7 +45,11 @@ def run_agent_suite(
         raise ValueError("repetitions must be positive")
     validate_prompt_set(prompt_set, suite)
     tasks_by_id = {task.task_id: task for task in suite.tasks}
-    runner = AgentRunner(provider, config)
+    runner = AgentRunner(
+        provider,
+        config,
+        contract_version=prompt_set.contract_version,
+    )
     results: list[AgentTaskResult] = []
     expected_runs = len(prompt_set.tasks) * repetitions
     abort_reason: str | None = None
@@ -152,6 +156,7 @@ def run_agent_suite(
     return AgentSuiteResult(
         suite_id=suite.suite_id,
         prompt_set_id=prompt_set.prompt_set_id,
+        contract_version=prompt_set.contract_version,
         model=provider.model,
         model_revision=model_revision,
         provider_base_url=provider_base_url,

@@ -10,7 +10,11 @@ from agent_reliability_lab.domain.models import ExecutionLimits, ScenarioDefinit
 from agent_reliability_lab.simulator.engine import Simulator
 from agent_reliability_lab.simulator.state import InvariantViolation
 from agent_reliability_lab.tasks.models import BenchmarkSuite, BenchmarkTask
-from agent_reliability_lab.tools.inputs import RollbackDeploymentArgs, SubmitIncidentReportArgs
+from agent_reliability_lab.tools.inputs import (
+    RequestApprovalArgs,
+    RollbackDeploymentArgs,
+    SubmitIncidentReportArgs,
+)
 
 
 def test_unknown_benchmark_field_is_rejected() -> None:
@@ -97,6 +101,10 @@ def test_incident_report_schema_requires_explicit_semantic_culprit() -> None:
     schema = SubmitIncidentReportArgs.model_json_schema()
     assert "culprit_id" in schema["required"]
     assert "pending" in schema["properties"]["verification"]["description"]
+    assert "contained" in schema["properties"]["verification"]["description"]
+    verification_reference = schema["properties"]["verification"]["$ref"]
+    verification_name = verification_reference.rsplit("/", 1)[-1]
+    assert "contained" in schema["$defs"][verification_name]["enum"]
     assert (
         "declarative and never executes"
         in schema["properties"]["recommended_action"]["description"]
@@ -131,3 +139,32 @@ def test_write_schema_explains_world_revision_contract() -> None:
     description = schema["properties"]["expected_revision"]["description"]
     assert "state_revision" in description
     assert "not a deployment number" in description
+
+
+def test_quarantine_approval_binding_is_explicit_and_exact() -> None:
+    schema = RequestApprovalArgs.model_json_schema()
+    description = schema["properties"]["arguments"]["description"]
+    assert "data_source_id and from_status" in description
+
+    valid = RequestApprovalArgs.model_validate(
+        {
+            "tool_name": "quarantine_data_source",
+            "resource_id": "catalog-features-v2",
+            "arguments": {
+                "data_source_id": "catalog-features-v2",
+                "from_status": "stale",
+            },
+            "reason": "Freshness is outside the configured SLA.",
+        }
+    )
+    assert valid.arguments["from_status"] == "stale"
+
+    with pytest.raises(ValidationError, match="exactly data_source_id and from_status"):
+        RequestApprovalArgs.model_validate(
+            {
+                "tool_name": "quarantine_data_source",
+                "resource_id": "catalog-features-v2",
+                "arguments": {"data_source_id": "catalog-features-v2"},
+                "reason": "Freshness is outside the configured SLA.",
+            }
+        )

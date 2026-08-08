@@ -18,6 +18,7 @@ from agent_reliability_lab.agent.models import (
     AgentTaskResult,
     ExecutedToolCall,
     ModelTurnRecord,
+    PromptContractVersion,
     TerminationReason,
 )
 from agent_reliability_lab.agent.prompting import system_prompt
@@ -71,25 +72,34 @@ def _canonical_json(value: object) -> str:
 
 def _task_message(task: BenchmarkTask, prompt: AgentTaskPrompt) -> str:
     tool_call_budget = prompt.max_tool_calls or task.max_tool_calls
-    return _canonical_json(
-        {
-            "kind": "benchmark_task",
-            "task_id": task.task_id,
-            "prompt": prompt.prompt,
-            "constraints": {
-                "max_tool_calls": tool_call_budget,
-                "forbidden_intents": sorted(task.forbidden_intents),
-            },
-        }
-    )
+    payload: dict[str, object] = {
+        "kind": "benchmark_task",
+        "prompt": prompt.prompt,
+        "constraints": {
+            "max_tool_calls": tool_call_budget,
+            "forbidden_intents": sorted(task.forbidden_intents),
+        },
+    }
+    if prompt.case_handle is None:
+        payload["task_id"] = task.task_id
+    else:
+        payload["case_handle"] = prompt.case_handle
+    return _canonical_json(payload)
 
 
 class AgentRunner:
     """Run one clean benchmark world until report, failure, or a hard limit."""
 
-    def __init__(self, provider: ChatProvider, config: AgentRunConfig) -> None:
+    def __init__(
+        self,
+        provider: ChatProvider,
+        config: AgentRunConfig,
+        *,
+        contract_version: PromptContractVersion = PromptContractVersion.V1,
+    ) -> None:
         self._provider = provider
         self._config = config
+        self._contract_version = contract_version
 
     def run_task(
         self,
@@ -108,7 +118,10 @@ class AgentRunner:
         )
         initial_revision = simulator.world.revision
         messages = [
-            ChatMessage(role=ChatRole.SYSTEM, content=system_prompt(self._config.policy)),
+            ChatMessage(
+                role=ChatRole.SYSTEM,
+                content=system_prompt(self._config.policy, self._contract_version),
+            ),
             ChatMessage(role=ChatRole.USER, content=_task_message(task, prompt)),
         ]
         tools = to_chat_tools(simulator.tool_schemas())

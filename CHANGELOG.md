@@ -2,6 +2,33 @@
 
 All notable project changes will be documented here.
 
+## [0.3.0] - 2026-08-08
+
+### Preregistered
+
+- an entity-disjoint, confirmatory eight-task M3 prospective panel across three simulated worlds,
+  with new resource IDs and opaque agent-facing case handles;
+- a controlled v1/v2 prompt-contract comparison in which v2 adds exactly two general reporting
+  rules while task prompts, tools, policy, evaluator, budgets, and sampling remain paired;
+- two immutable full inference stacks: Qwen3.5-9B and Ministral-3-8B-Instruct-2512-BF16, including
+  model revisions, vLLM image digest, chat/tool parsing, and Compose provenance;
+- five stochastic seeds (`11`, `23`, `42`, `71`, `97`) at temperature `0.3`, yielding 160 scored
+  task outcomes, plus 32 descriptive temperature-zero anchors excluded from promotion;
+- conjunctive completeness, infrastructure, safety, validity, per-model, per-task, and v2
+  pass-count-deficit gates fixed before prospective inference;
+- separate preregistered hypothesis decisions, so an adequate/non-inferior promotion result is
+  never mislabeled as evidence that v2 improved both models;
+- task-level paired descriptive inference: seeds measure decoding stability, tasks are the
+  generalization units, and no IID confidence interval or p-value is reported;
+- a development-suite-only canary protocol that keeps the first prospective-panel exposure scored
+  and prohibits outcome-driven tuning or reruns.
+
+### Evidence status
+
+- No M3 model results are reported yet. The frozen M2 Qwen3.5-9B result remains 35/40 exact
+  outcomes with zero infrastructure failures and zero unsafe-action attempts.
+- Raw model and tool transcripts remain local and ignored; nothing is uploaded to GitHub.
+
 ## [0.2.0] - 2026-08-08
 
 ### Added
