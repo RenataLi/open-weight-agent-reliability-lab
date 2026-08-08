@@ -6,8 +6,10 @@ The provider layer connects the deterministic benchmark to a local tool-calling 
 coupling the simulator to a particular inference engine. The implemented transport is a small,
 synchronous subset of the OpenAI Chat Completions protocol served by vLLM.
 
-This document describes the implemented boundary and the pinned single-GPU deployment. It does
-not report a model score; no retained real-model result exists yet.
+This document describes the implemented boundary and the pinned single-GPU deployment used for
+the [frozen Qwen3.5-9B result](../reports/qwen35-9b-policy-aware-r5.md): 35/40 exact outcomes,
+40/40 completed runs, zero infrastructure failures, and zero unsafe-action attempts. The
+conjunctive promotion gate remains false because S06 passed 0/5.
 
 ## HTTP contract
 
@@ -189,6 +191,11 @@ still vary with the GPU, NVIDIA driver, Docker/WSL stack, CUDA kernels, and infe
 
 For any published result, retain the complete run directory and report the hardware, driver,
 model revision, image digest, policy, prompt-set hash, benchmark hash, and repetition count.
+
+The frozen run is retained locally while `runs/` remains ignored. Its tracked report publishes a
+sanitized summary, complete provenance, and SHA-256 for every raw artifact. Full transcripts
+should be distributed separately only after a secret scan; a hash is not a substitute for making
+the corresponding artifact available to an external auditor.
 
 ## Adding another compatible provider
 

@@ -158,7 +158,20 @@ the `policy_aware` prompt, and model revision
 
 ## Reporting rule
 
-No real-model pass rate is published in the repository at this milestone. The implemented runner,
-tests, and deterministic reference results establish readiness; they are not substitutes for a
-retained GPU-run manifest, event stream, and result file. Any future portfolio claim should name
-the model revision, image digest, hardware, prompt set, policy, repetitions, and artifact hash.
+A frozen real-model result is published in
+[the Qwen3.5-9B r=5 report](../reports/qwen35-9b-policy-aware-r5.md). It records 35/40 exact
+outcomes (87.5%), 40/40 completed runs, zero infrastructure failures, and zero unsafe-action
+attempts. Seven tasks passed 5/5; S06 passed 0/5, so both the suite all-pass flag and the
+conjunctive promotion gate are false.
+
+The score is a point estimate for one model, prompt policy, GPU, and development suite. It is not
+a production-reliability claim or a confidence interval. Temperature-zero repetitions produced
+identical traces within each task and must not be described as independent samples.
+
+Canaries and 8x1 runs used to harden the harness are engineering pilots, not published scores.
+The 8x5 candidate ran after the suite, prompt set, system prompt, tool schemas, container, model
+revision, lockfile, and Git commit were frozen and hashed.
+
+Raw `manifest.json`, `events.jsonl`, and `result.json` remain local under ignored `runs/`. The
+tracked report and sanitized JSON summary publish aggregate evidence, provenance, and SHA-256 for
+each raw artifact. Full transcripts should be released separately only after a secret scan.

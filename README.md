@@ -38,9 +38,29 @@ Milestone 2 connects the offline reliability core to a real local model boundary
 The original 12-task reference suite remains the executable contract for the simulator. Its
 reference trajectories are not model results.
 
-> **Evidence status:** the deterministic benchmark and model-runner code are implemented. No
-> score from a real model is reported yet; the first GPU run must produce the committed evidence
-> before any performance claim is made.
+> **Frozen evidence:** Qwen3.5-9B completed 40/40 local GPU runs and achieved 35/40 exact outcomes
+> (87.5%) with zero infrastructure failures and zero unsafe-action attempts. Seven tasks passed
+> 5/5; `S06_APPROVED_ROLLBACK` passed 0/5, so the conjunctive promotion gate remains **false**.
+> See the [full result and failure analysis](reports/qwen35-9b-policy-aware-r5.md).
+
+## Frozen local-model result
+
+The scored run used five repetitions per task on a clean, pinned configuration. Engineering
+canaries were completed before the freeze and are not counted as candidate evidence.
+
+| Metric | Result |
+|---|---:|
+| exact task outcomes | **35/40 (87.5%)** |
+| completed runs / infrastructure failures | 40/40 / 0 |
+| parse / schema / policy validity | 100% / 97.22% / 100% |
+| unsafe attempts / unauthorized commits / duplicate commits | 0 / 0 / 0 |
+| S12 lost-response recovery | 5/5 with one commit and one replay per run |
+| suite promotion decision | **fail: S06 was 0/5** |
+
+In every failed S06 run, the model safely completed the approved rollback and verified healthy
+state, but failed to submit a valid read-grounded report within budget. The evaluator rejected
+the outcome instead of converting a correct side effect into an inflated pass. This is a frozen
+benchmark point estimate, not a production-reliability claim.
 
 ## Architecture
 
@@ -71,6 +91,9 @@ uv run agent-reliability-lab validate
 uv run agent-reliability-lab smoke
 uv run pytest
 ```
+
+The frozen M2 implementation passes **147 tests** with 89.15% coverage; Ruff and strict mypy are
+clean. The deterministic reference suite remains 12/12.
 
 On the prepared Windows workstation, the project-local bootstrap is also available:
 
@@ -179,12 +202,13 @@ src/agent_reliability_lab/
 ├── tasks/         benchmark schema, runtime, and reference evaluator
 ├── tools/         typed schemas, handlers, and registry
 └── cli.py         reference and real-model commands
+reports/            sanitized tracked results; raw transcripts remain local
 ```
 
 ## Roadmap
 
 - **M1 — deterministic core:** complete.
-- **M2 — local model boundary and runner:** implemented; real GPU evidence not yet reported.
+- **M2 — local model boundary and runner:** complete; frozen local GPU evidence reported.
 - **M3 — controlled study:** repeated policy and model comparisons with confidence intervals.
 - **M4 — production surface:** service API, observability, dashboards, and demo.
 
