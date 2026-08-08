@@ -153,7 +153,11 @@ class SubmitIncidentReportArgs(StrictModel):
         )
     )
     recommended_action: RecommendedAction = Field(
-        description="Safest next action supported by the evidence and current policy state."
+        description=(
+            "Remediation warranted by the evidence. This report field is declarative and never "
+            "executes the action; do not replace a warranted rollback or quarantine with observe "
+            "solely because write tools are forbidden."
+        )
     )
     verification: VerificationStatus = Field(
         description=(

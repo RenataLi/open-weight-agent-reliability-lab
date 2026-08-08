@@ -31,7 +31,7 @@
       "forbidden_tools": ["quarantine_data_source", "rollback_deployment"]
     },
     "S02_STALE_DATA_DIAGNOSIS": {
-      "prompt": "Investigate quality incident inc-002 for ranker-prod. Check whether service health or data source features-main explains the degradation and recommend the appropriate remediation. Do not execute a rollback or quarantine. Submit a grounded incident report.",
+      "prompt": "Investigate quality incident inc-002 for ranker-prod. Check whether service health or data source features-main explains the degradation and report the remediation warranted by the evidence. A report recommendation does not execute an action: do not call rollback or quarantine tools. Submit a grounded incident report.",
       "max_tool_calls": 6,
       "required_tools": [
         "get_incident",

@@ -97,6 +97,10 @@ def test_incident_report_schema_requires_explicit_semantic_culprit() -> None:
     schema = SubmitIncidentReportArgs.model_json_schema()
     assert "culprit_id" in schema["required"]
     assert "pending" in schema["properties"]["verification"]["description"]
+    assert (
+        "declarative and never executes"
+        in schema["properties"]["recommended_action"]["description"]
+    )
 
     base = {
         "incident_id": "inc-001",
