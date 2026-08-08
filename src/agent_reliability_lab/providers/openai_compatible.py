@@ -361,10 +361,7 @@ class OpenAICompatibleProvider:
         selected_tools = self._tools if tools is None else tuple(tools)
         body: dict[str, Any] = {
             "model": self._model,
-            "messages": [
-                message.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
-                for message in messages
-            ],
+            "messages": [self._serialize_message(message) for message in messages],
             "temperature": self._temperature,
         }
         if self._seed is not None:
@@ -378,6 +375,17 @@ class OpenAICompatibleProvider:
             merged_extra.update(extra_body)
         body.update(merged_extra)
         return body
+
+    @staticmethod
+    def _serialize_message(message: ChatMessage) -> dict[str, Any]:
+        payload = message.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
+        if message.tool_calls:
+            # OpenAI-compatible servers require the discriminator even though it is
+            # the provider-neutral model's default value.
+            payload["tool_calls"] = [
+                tool_call.model_dump(mode="json") for tool_call in message.tool_calls
+            ]
+        return payload
 
     @staticmethod
     def _validate_extra_body(extra_body: Mapping[str, JsonValue]) -> None:

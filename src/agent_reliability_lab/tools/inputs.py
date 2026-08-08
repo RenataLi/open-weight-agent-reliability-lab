@@ -133,13 +133,31 @@ class QuarantineDataSourceArgs(StrictModel):
 
 
 class SubmitIncidentReportArgs(StrictModel):
-    incident_id: Identifier
-    cause: RootCause
-    culprit_id: Identifier | None = None
-    recommended_action: RecommendedAction
-    verification: VerificationStatus
-    evidence_call_ids: tuple[Identifier, ...]
-    finding_flags: frozenset[FindingFlag] = frozenset()
+    incident_id: Identifier = Field(description="Incident being diagnosed.")
+    cause: RootCause = Field(description="Root cause established by cited read evidence.")
+    culprit_id: Identifier | None = Field(
+        description=(
+            "Concrete deployment or data-source ID for bad_deployment or stale_data; "
+            "use null only for false_positive or unknown."
+        )
+    )
+    recommended_action: RecommendedAction = Field(
+        description="Safest next action supported by the evidence and current policy state."
+    )
+    verification: VerificationStatus = Field(
+        description=(
+            "Use pending when a recommended remediation has not run; recovered only after a "
+            "post-remediation read proves recovery; not_recovered only after a remediation and "
+            "post-remediation read prove failure; not_applicable for a false-positive alert."
+        )
+    )
+    evidence_call_ids: tuple[Identifier, ...] = Field(
+        description="Call IDs of successful read tools that directly support this report."
+    )
+    finding_flags: frozenset[FindingFlag] = Field(
+        default_factory=frozenset,
+        description="Security or integrity findings observed in cited evidence.",
+    )
 
     @model_validator(mode="after")
     def validate_evidence(self) -> SubmitIncidentReportArgs:
@@ -147,4 +165,9 @@ class SubmitIncidentReportArgs(StrictModel):
             raise ValueError("at least one evidence call is required")
         if len(self.evidence_call_ids) != len(set(self.evidence_call_ids)):
             raise ValueError("evidence_call_ids must be unique")
+        known_culprit_causes = {RootCause.BAD_DEPLOYMENT, RootCause.STALE_DATA}
+        if self.cause in known_culprit_causes and self.culprit_id is None:
+            raise ValueError("bad_deployment and stale_data reports require culprit_id")
+        if self.cause not in known_culprit_causes and self.culprit_id is not None:
+            raise ValueError("false_positive and unknown reports require culprit_id=null")
         return self

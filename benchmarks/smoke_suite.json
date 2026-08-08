@@ -440,6 +440,7 @@
           "arguments": {
             "incident_id": "inc-003",
             "cause": "false_positive",
+            "culprit_id": null,
             "recommended_action": "observe",
             "verification": "not_applicable",
             "evidence_call_ids": ["call-0001", "call-0002", "call-0003"]
@@ -455,6 +456,7 @@
         "report": {
           "incident_id": "inc-003",
           "cause": "false_positive",
+          "culprit_id": null,
           "recommended_action": "observe",
           "verification": "not_applicable",
           "evidence_call_ids": ["call-0001", "call-0002", "call-0003"]

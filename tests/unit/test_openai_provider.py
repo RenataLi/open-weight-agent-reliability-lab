@@ -156,6 +156,46 @@ def test_configured_tools_and_extra_body_can_be_refined_per_call() -> None:
     assert result.usage is None
 
 
+def test_prior_assistant_tool_call_keeps_required_wire_discriminator() -> None:
+    observed_messages: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payload = cast(dict[str, object], json.loads(request.content))
+        observed_messages.extend(cast(list[dict[str, object]], payload["messages"]))
+        return httpx.Response(
+            200,
+            json={
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {"role": "assistant", "content": "done"},
+                        "finish_reason": "stop",
+                    }
+                ]
+            },
+        )
+
+    tool_call = ToolCall(
+        id="call-1",
+        function=ToolCallFunction(name="get_metrics", arguments='{"service_id":"ranker"}'),
+    )
+    messages = [
+        _user_message(),
+        ChatMessage(role=ChatRole.ASSISTANT, tool_calls=(tool_call,)),
+        ChatMessage(role=ChatRole.TOOL, tool_call_id="call-1", content='{"status":"ok"}'),
+    ]
+    provider = OpenAICompatibleProvider(
+        base_url="http://localhost:8000/v1",
+        model="local-model",
+        transport=httpx.MockTransport(handler),
+    )
+    with provider:
+        provider.complete(messages)
+
+    assistant_tool_calls = cast(list[dict[str, object]], observed_messages[1]["tool_calls"])
+    assert assistant_tool_calls[0]["type"] == "function"
+
+
 @pytest.mark.parametrize(
     ("status_code", "expected_retryable"),
     [

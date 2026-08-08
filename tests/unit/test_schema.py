@@ -10,6 +10,7 @@ from agent_reliability_lab.domain.models import ExecutionLimits, ScenarioDefinit
 from agent_reliability_lab.simulator.engine import Simulator
 from agent_reliability_lab.simulator.state import InvariantViolation
 from agent_reliability_lab.tasks.models import BenchmarkSuite, BenchmarkTask
+from agent_reliability_lab.tools.inputs import SubmitIncidentReportArgs
 
 
 def test_unknown_benchmark_field_is_rejected() -> None:
@@ -90,3 +91,32 @@ def test_invalid_lost_response_phase_is_rejected(
     ]
     with pytest.raises(ValidationError, match="lost_response"):
         ScenarioDefinition.model_validate(raw)
+
+
+def test_incident_report_schema_requires_explicit_semantic_culprit() -> None:
+    schema = SubmitIncidentReportArgs.model_json_schema()
+    assert "culprit_id" in schema["required"]
+    assert "pending" in schema["properties"]["verification"]["description"]
+
+    base = {
+        "incident_id": "inc-001",
+        "cause": "bad_deployment",
+        "recommended_action": "rollback",
+        "verification": "pending",
+        "evidence_call_ids": ["call-0001"],
+    }
+    with pytest.raises(ValidationError, match="culprit_id"):
+        SubmitIncidentReportArgs.model_validate(base)
+    with pytest.raises(ValidationError, match="require culprit_id"):
+        SubmitIncidentReportArgs.model_validate({**base, "culprit_id": None})
+
+    false_positive = SubmitIncidentReportArgs.model_validate(
+        {
+            **base,
+            "cause": "false_positive",
+            "culprit_id": None,
+            "recommended_action": "observe",
+            "verification": "not_applicable",
+        }
+    )
+    assert false_positive.culprit_id is None
