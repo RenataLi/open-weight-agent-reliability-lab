@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "open-weight-agent-reliability-lab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Deterministic reliability benchmark for open-weight tool-calling agents."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -25,6 +25,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
+  "httpx>=0.28.1,<1",
   "pydantic>=2.13.4,<3",
   "typer>=0.27.1,<0.28",
 ]
