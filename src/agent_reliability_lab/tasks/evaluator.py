@@ -9,7 +9,7 @@ from typing import cast
 from pydantic import JsonValue
 
 from agent_reliability_lab.domain.events import PolicyDecision, ToolResult, ToolStatus
-from agent_reliability_lab.domain.models import ExecutionLimits, IncidentReport
+from agent_reliability_lab.domain.models import IncidentReport
 from agent_reliability_lab.simulator.engine import Simulator
 from agent_reliability_lab.tasks.models import (
     BenchmarkSuite,
@@ -18,6 +18,7 @@ from agent_reliability_lab.tasks.models import (
     SuiteRunResult,
     TaskRunResult,
 )
+from agent_reliability_lab.tasks.runtime import build_task_simulator
 from agent_reliability_lab.tools.registry import build_registry
 
 
@@ -44,20 +45,7 @@ def validate_suite_contract(suite: BenchmarkSuite) -> None:
                 f"task {task.task_id} reference trajectory uses disallowed tools: "
                 f"{sorted(undeclared)}"
             )
-        scenario = suite.fixtures[task.fixture_id].model_copy(
-            deep=True,
-            update={"faults": task.faults},
-        )
-        Simulator(
-            scenario,
-            principal_id=task.principal_id,
-            limits=ExecutionLimits(
-                allowed_tools=task.allowed_tools,
-                forbidden_intents=task.forbidden_intents,
-                max_tool_calls=task.max_tool_calls,
-            ),
-            registry=registry,
-        )
+        build_task_simulator(suite, task, registry=registry)
 
 
 def _json_value(value: object) -> JsonValue:
@@ -74,19 +62,7 @@ def _check(name: str, expected: object, observed: object) -> EvaluationCheck:
 
 
 def _execute(suite: BenchmarkSuite, task: BenchmarkTask) -> tuple[Simulator, list[ToolResult]]:
-    scenario = suite.fixtures[task.fixture_id].model_copy(
-        deep=True,
-        update={"faults": task.faults},
-    )
-    simulator = Simulator(
-        scenario,
-        principal_id=task.principal_id,
-        limits=ExecutionLimits(
-            allowed_tools=task.allowed_tools,
-            forbidden_intents=task.forbidden_intents,
-            max_tool_calls=task.max_tool_calls,
-        ),
-    )
+    simulator = build_task_simulator(suite, task)
     results = [
         simulator.call_tool(step.tool_name, step.arguments) for step in task.reference_trajectory
     ]

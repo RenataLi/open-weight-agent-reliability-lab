@@ -185,6 +185,7 @@ def get_approval(world: WorldState, raw: BaseModel, _session: SessionState) -> T
         "approval_id": approval.approval_id,
         "tool_name": approval.tool_name,
         "resource_id": approval.resource_id,
+        "authorized_arguments": approval.authorized_arguments,
         "status": approval.status.value,
         "expires_at_minute": approval.expires_at_minute,
         "binding_digest": approval.intent_digest,

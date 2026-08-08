@@ -81,8 +81,36 @@ class SearchRunbooksArgs(StrictModel):
 class RequestApprovalArgs(StrictModel):
     tool_name: Identifier
     resource_id: Identifier
-    arguments: dict[str, JsonValue]
+    arguments: dict[str, JsonValue] = Field(
+        description=(
+            "Canonical action binding. For rollback_deployment provide exactly service_id, "
+            "from_deployment_id, and target_deployment_id. Do not include expected_revision, "
+            "idempotency_key, or approval_id."
+        )
+    )
     reason: Annotated[str, Field(strict=True, min_length=1, max_length=500)]
+
+    @model_validator(mode="after")
+    def validate_action_binding(self) -> RequestApprovalArgs:
+        if self.tool_name == "rollback_deployment":
+            required = {
+                "service_id",
+                "from_deployment_id",
+                "target_deployment_id",
+            }
+            if set(self.arguments) != required:
+                raise ValueError(
+                    "rollback_deployment arguments must contain exactly service_id, "
+                    "from_deployment_id, and target_deployment_id"
+                )
+            if self.arguments["service_id"] != self.resource_id:
+                raise ValueError("rollback service_id must equal resource_id")
+            if any(
+                not isinstance(self.arguments[key], str) or not self.arguments[key]
+                for key in required
+            ):
+                raise ValueError("rollback binding values must be non-empty strings")
+        return self
 
 
 class GetApprovalArgs(StrictModel):

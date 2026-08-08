@@ -3,12 +3,26 @@
 from __future__ import annotations
 
 import json
+import os
+import platform
+import subprocess
+from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Annotated
+from urllib.parse import urlsplit, urlunsplit
 
+import httpx
 import typer
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
+from agent_reliability_lab.agent.models import AgentPolicy, AgentRunConfig
+from agent_reliability_lab.agent.persistence import RunStore
+from agent_reliability_lab.agent.prompt_sets import load_prompt_set, validate_prompt_set
+from agent_reliability_lab.agent.prompting import system_prompt
+from agent_reliability_lab.agent.suite import run_agent_suite
+from agent_reliability_lab.providers.base import ProviderError
+from agent_reliability_lab.providers.openai_compatible import OpenAICompatibleProvider
 from agent_reliability_lab.tasks.evaluator import load_suite, run_suite, validate_suite_contract
 from agent_reliability_lab.tasks.models import BenchmarkSuite
 from agent_reliability_lab.tools.registry import build_registry
@@ -20,6 +34,9 @@ app = typer.Typer(
 )
 
 DEFAULT_SUITE = Path("benchmarks/smoke_suite.json")
+DEFAULT_PROMPTS = Path("benchmarks/model_prompts_v1.json")
+agent_app = typer.Typer(help="Run real model-driven evaluations against the simulator.")
+app.add_typer(agent_app, name="agent")
 
 
 def _load_or_exit(path: Path) -> BenchmarkSuite:
@@ -93,6 +110,393 @@ def tool_schemas() -> None:
     registry = build_registry()
     schemas = [registry[name].json_schema() for name in sorted(registry)]
     typer.echo(json.dumps(schemas, ensure_ascii=False, sort_keys=True))
+
+
+def _safe_base_url(base_url: str) -> str:
+    value = base_url.strip()
+    if not value:
+        raise ValueError("base_url must not be empty")
+    if "\\" in value or any(character.isspace() or ord(character) < 32 for character in value):
+        raise ValueError("base_url is malformed")
+    try:
+        parsed = urlsplit(value)
+        _ = parsed.port
+    except ValueError as exc:
+        raise ValueError("base_url is malformed") from exc
+    if parsed.scheme not in {"http", "https"}:
+        raise ValueError("base_url must use http or https")
+    if parsed.hostname is None:
+        raise ValueError("base_url must include a host")
+    try:
+        normalized_hostname = parsed.hostname.rstrip(".").encode("idna").decode("ascii")
+    except UnicodeError as exc:
+        raise ValueError("base_url host is malformed") from exc
+    if not normalized_hostname or any(not label for label in normalized_hostname.split(".")):
+        raise ValueError("base_url host is malformed")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("base_url must not contain credentials")
+    if parsed.query or parsed.fragment:
+        raise ValueError("base_url must not contain a query or fragment")
+    path = parsed.path.rstrip("/")
+    return urlunsplit((parsed.scheme, parsed.netloc, path, "", ""))
+
+
+def _file_digest(path: Path) -> str:
+    return sha256(path.read_bytes()).hexdigest()
+
+
+def _json_digest(value: object) -> str:
+    payload = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def _git_provenance(project_root: Path) -> tuple[str | None, bool | None]:
+    try:
+        commit_process = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=project_root,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        status_process = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=normal"],
+            cwd=project_root,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None, None
+    commit = commit_process.stdout.strip()
+    return (commit or None), bool(status_process.stdout.strip())
+
+
+def _command_output(arguments: list[str], *, cwd: Path | None = None) -> str | None:
+    try:
+        process = subprocess.run(
+            arguments,
+            cwd=cwd,
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    value = process.stdout.strip()
+    return value or None
+
+
+def _compose_image_reference(project_root: Path) -> str | None:
+    compose_path = project_root / "deploy" / "compose.gpu.yml"
+    if not compose_path.is_file():
+        return None
+    for line in compose_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("image:"):
+            return stripped.partition(":")[2].strip() or None
+    return None
+
+
+def _docker_model_provenance() -> dict[str, JsonValue]:
+    container = "agent-reliability-vllm"
+    image_id = _command_output(["docker", "inspect", "--format", "{{.Image}}", container])
+    configured_image = _command_output(
+        ["docker", "inspect", "--format", "{{.Config.Image}}", container]
+    )
+    command_json = _command_output(
+        ["docker", "inspect", "--format", "{{json .Config.Cmd}}", container]
+    )
+    safe_arguments = _safe_vllm_arguments(command_json)
+    repo_digests_json = (
+        _command_output(
+            ["docker", "image", "inspect", image_id, "--format", "{{json .RepoDigests}}"]
+        )
+        if image_id is not None
+        else None
+    )
+    return {
+        "observed_container_image_id": image_id,
+        "observed_container_image_reference": configured_image,
+        "observed_vllm_arguments": safe_arguments or None,
+        "observed_vllm_arguments_sha256": (
+            _json_digest(safe_arguments) if safe_arguments else None
+        ),
+        "observed_image_repo_digests_json": repo_digests_json,
+    }
+
+
+def _safe_vllm_arguments(command_json: str | None) -> dict[str, JsonValue]:
+    """Allowlist reproducibility flags without persisting credentials from Docker Cmd."""
+
+    if command_json is None:
+        return {}
+    try:
+        command = json.loads(command_json)
+    except ValueError:
+        return {}
+    if not isinstance(command, list) or not all(isinstance(item, str) for item in command):
+        return {}
+    value_flags = {
+        "--model",
+        "--revision",
+        "--served-model-name",
+        "--dtype",
+        "--max-model-len",
+        "--gpu-memory-utilization",
+        "--max-num-seqs",
+        "--generation-config",
+        "--tool-call-parser",
+        "--reasoning-parser",
+        "--host",
+        "--port",
+    }
+    boolean_flags = {
+        "--language-model-only",
+        "--enable-auto-tool-choice",
+        "--enable-prefix-caching",
+        "--no-enable-prefix-caching",
+    }
+    observed: dict[str, JsonValue] = {}
+    index = 0
+    while index < len(command):
+        item = command[index]
+        if item in value_flags and index + 1 < len(command):
+            observed[item.removeprefix("--")] = command[index + 1]
+            index += 2
+            continue
+        if item in boolean_flags:
+            observed[item.removeprefix("--")] = True
+        index += 1
+    return observed
+
+
+def _vllm_server_version(base_url: str, api_key: str | None) -> str | None:
+    parsed = urlsplit(base_url)
+    endpoint = urlunsplit((parsed.scheme, parsed.netloc, "/version", "", ""))
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
+    try:
+        with httpx.Client(timeout=5.0, trust_env=False, headers=headers) as client:
+            response = client.get(endpoint)
+            response.raise_for_status()
+            payload = response.json()
+    except (httpx.HTTPError, ValueError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    version = payload.get("version")
+    return version if isinstance(version, str) and version else None
+
+
+def _tool_schema_digest() -> str:
+    registry = build_registry()
+    schemas = [registry[name].json_schema() for name in sorted(registry)]
+    return _json_digest(schemas)
+
+
+@agent_app.command("run")
+def agent_run(
+    suite_path: Annotated[Path, typer.Argument(help="Benchmark suite JSON.")] = DEFAULT_SUITE,
+    prompt_set_path: Annotated[
+        Path,
+        typer.Option("--prompts", help="Agent-facing prompt set JSON."),
+    ] = DEFAULT_PROMPTS,
+    task_id: Annotated[
+        str | None,
+        typer.Option("--task-id", help="Run one prompt task as a canary."),
+    ] = None,
+    base_url: Annotated[
+        str,
+        typer.Option("--base-url", help="OpenAI-compatible API base URL."),
+    ] = "http://127.0.0.1:8000/v1",
+    model: Annotated[str, typer.Option("--model", help="Served model identifier.")] = "local-model",
+    model_revision: Annotated[
+        str | None,
+        typer.Option("--model-revision", help="Immutable model revision recorded in artifacts."),
+    ] = None,
+    policy: Annotated[AgentPolicy, typer.Option("--policy")] = AgentPolicy.POLICY_AWARE,
+    repetitions: Annotated[int, typer.Option("--repetitions", min=1)] = 1,
+    seed: Annotated[int, typer.Option("--seed", min=0)] = 42,
+    temperature: Annotated[float, typer.Option("--temperature", min=0.0, max=2.0)] = 0.0,
+    top_p: Annotated[float, typer.Option("--top-p", min=0.001, max=1.0)] = 1.0,
+    max_tokens: Annotated[int, typer.Option("--max-tokens", min=1)] = 2048,
+    max_turns: Annotated[int, typer.Option("--max-turns", min=1)] = 12,
+    timeout_seconds: Annotated[float, typer.Option("--timeout-seconds", min=1.0)] = 300.0,
+    provider_attempts: Annotated[int, typer.Option("--provider-attempts", min=1)] = 2,
+    api_key_env: Annotated[
+        str,
+        typer.Option("--api-key-env", help="Environment variable containing the API key."),
+    ] = "VLLM_API_KEY",
+    output_dir: Annotated[Path, typer.Option("--output-dir")] = Path("runs"),
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Evaluate a local tool-calling model and persist complete run artifacts."""
+
+    try:
+        safe_url = _safe_base_url(base_url)
+        normalized_model = model.strip()
+        if not normalized_model:
+            raise ValueError("model must not be empty")
+        suite = load_suite(suite_path)
+        validate_suite_contract(suite)
+        prompt_set = load_prompt_set(prompt_set_path)
+        validate_prompt_set(prompt_set, suite)
+        if task_id is not None:
+            matching_tasks = tuple(task for task in suite.tasks if task.task_id == task_id)
+            prompt = prompt_set.tasks.get(task_id)
+            if not matching_tasks or prompt is None:
+                raise ValueError(f"unknown task-id: {task_id}")
+            suite = suite.model_copy(update={"tasks": matching_tasks})
+            prompt_set = prompt_set.model_copy(update={"tasks": {task_id: prompt}})
+        config = AgentRunConfig(
+            policy=policy,
+            seed=seed,
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,
+            max_turns=max_turns,
+        )
+        resolved_run_id = run_id or datetime.now(UTC).strftime("run-%Y%m%dT%H%M%S.%fZ")
+        store = RunStore(output_dir, resolved_run_id)
+        provider_backoff_seconds = 0.25
+        api_key = os.getenv(api_key_env)
+        provider = OpenAICompatibleProvider(
+            base_url=safe_url,
+            model=normalized_model,
+            api_key=api_key,
+            timeout=timeout_seconds,
+            transport_retries=provider_attempts - 1,
+            backoff_seconds=provider_backoff_seconds,
+            seed=seed,
+            temperature=temperature,
+        )
+    except (FileNotFoundError, OSError, ValidationError, ValueError) as exc:
+        typer.echo(f"Invalid agent run configuration: {exc}", err=True)
+        raise typer.Exit(2) from None
+
+    try:
+        try:
+            observed_model_ids = provider.check_model_available()
+        except ProviderError as exc:
+            typer.echo(
+                f"Model preflight failed ({exc.code.value}): {exc.message}",
+                err=True,
+            )
+            raise typer.Exit(3) from None
+
+        try:
+            project_root = _project_root()
+            uv_lock = project_root / "uv.lock"
+            compose_path = project_root / "deploy" / "compose.gpu.yml"
+            git_commit, git_dirty = _git_provenance(project_root)
+            docker_provenance = _docker_model_provenance()
+            observed_vllm_arguments = docker_provenance["observed_vllm_arguments"]
+            manifest: dict[str, JsonValue] = {
+                "schema_version": "1.0",
+                "run_id": resolved_run_id,
+                "suite_id": suite.suite_id,
+                "suite_sha256": _file_digest(suite_path),
+                "prompt_set_id": prompt_set.prompt_set_id,
+                "prompt_set_sha256": _file_digest(prompt_set_path),
+                "system_prompt_sha256": _json_digest(system_prompt(policy)),
+                "tool_schemas_sha256": _tool_schema_digest(),
+                "uv_lock_sha256": _file_digest(uv_lock) if uv_lock.is_file() else None,
+                "git_commit": git_commit,
+                "git_dirty": git_dirty,
+                "python_version": platform.python_version(),
+                "platform": platform.platform(),
+                "gpu_inventory": _command_output(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=name,driver_version,memory.total,compute_cap",
+                        "--format=csv,noheader,nounits",
+                    ]
+                ),
+                "docker_server_version": _command_output(
+                    ["docker", "version", "--format", "{{.Server.Version}}"]
+                ),
+                "vllm_image_reference": _compose_image_reference(project_root),
+                "deployment_compose_sha256": (
+                    _file_digest(compose_path) if compose_path.is_file() else None
+                ),
+                "task_id": task_id,
+                "model": normalized_model,
+                "model_revision": model_revision,
+                "declared_model_revision": model_revision,
+                "observed_model_ids": list(observed_model_ids),
+                "model_identity_verified": normalized_model in observed_model_ids,
+                "model_revision_observed_in_container_command": (
+                    isinstance(observed_vllm_arguments, dict)
+                    and model_revision is not None
+                    and observed_vllm_arguments.get("revision") == model_revision
+                ),
+                "observed_vllm_version": _vllm_server_version(safe_url, api_key),
+                **docker_provenance,
+                "provider_base_url": safe_url,
+                "policy": policy,
+                "repetitions": repetitions,
+                "seed": seed,
+                "temperature": temperature,
+                "top_p": top_p,
+                "max_tokens": max_tokens,
+                "max_turns": max_turns,
+                "timeout_seconds": timeout_seconds,
+                "provider_attempts": provider_attempts,
+                "provider_backoff_seconds": provider_backoff_seconds,
+                "api_key_present": bool(api_key),
+            }
+            store.start(manifest)
+            result = run_agent_suite(
+                suite,
+                prompt_set,
+                provider,
+                config,
+                repetitions=repetitions,
+                provider_base_url=safe_url,
+                model_revision=model_revision,
+                event_sink_factory=lambda selected_task_id, repetition: (
+                    lambda event: store.append(
+                        {
+                            "task_id": selected_task_id,
+                            "repetition": repetition,
+                            **event,
+                        }
+                    )
+                ),
+            )
+            result_path = store.finish(result)
+        except (OSError, RuntimeError, ValidationError, ValueError, ProviderError) as exc:
+            typer.echo(f"Agent run infrastructure failure: {exc}", err=True)
+            raise typer.Exit(3) from None
+    finally:
+        provider.close()
+
+    if json_output:
+        typer.echo(json.dumps(result.model_dump(mode="json"), ensure_ascii=False, sort_keys=True))
+    else:
+        typer.echo(
+            f"{result.model}: {result.passed_runs}/{result.total_runs} runs passed "
+            f"({result.aggregate['pass_rate']:.1%})"
+        )
+        typer.echo(f"Artifacts: {result_path}")
+    if result.aggregate["infrastructure_failures"]:
+        raise typer.Exit(3)
+    if not result.passed:
+        raise typer.Exit(1)
 
 
 def main() -> None:

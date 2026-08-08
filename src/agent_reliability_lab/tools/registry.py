@@ -89,14 +89,18 @@ def build_registry() -> dict[str, ToolSpec]:
         ),
         ToolSpec(
             "request_approval",
-            "Request the external operator decision bound to an exact action intent.",
+            (
+                "Request an external decision bound to an exact action intent. For rollback, "
+                "arguments must contain service_id, from_deployment_id, and "
+                "target_deployment_id."
+            ),
             RequestApprovalArgs,
             ToolEffect.CONTROL,
             request_approval,
         ),
         ToolSpec(
             "get_approval",
-            "Read an external approval without changing it.",
+            "Read an external approval and its exact authorized arguments without changing it.",
             GetApprovalArgs,
             ToolEffect.READ,
             get_approval,
