@@ -10,7 +10,7 @@ from agent_reliability_lab.domain.models import ExecutionLimits, ScenarioDefinit
 from agent_reliability_lab.simulator.engine import Simulator
 from agent_reliability_lab.simulator.state import InvariantViolation
 from agent_reliability_lab.tasks.models import BenchmarkSuite, BenchmarkTask
-from agent_reliability_lab.tools.inputs import SubmitIncidentReportArgs
+from agent_reliability_lab.tools.inputs import RollbackDeploymentArgs, SubmitIncidentReportArgs
 
 
 def test_unknown_benchmark_field_is_rejected() -> None:
@@ -120,3 +120,10 @@ def test_incident_report_schema_requires_explicit_semantic_culprit() -> None:
         }
     )
     assert false_positive.culprit_id is None
+
+
+def test_write_schema_explains_world_revision_contract() -> None:
+    schema = RollbackDeploymentArgs.model_json_schema()
+    description = schema["properties"]["expected_revision"]["description"]
+    assert "state_revision" in description
+    assert "not a deployment number" in description

@@ -66,3 +66,8 @@ def validate_prompt_set(prompt_set: AgentPromptSet, suite: BenchmarkSuite) -> No
         overlap = required & set(prompt.forbidden_tools)
         if overlap:
             raise ValueError(f"{task_id} both requires and forbids tools: {sorted(overlap)}")
+        if prompt.max_tool_calls is not None and prompt.max_tool_calls < len(required):
+            raise ValueError(
+                f"{task_id} max_tool_calls must cover all required tools: "
+                f"{prompt.max_tool_calls} < {len(required)}"
+            )

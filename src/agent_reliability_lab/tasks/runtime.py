@@ -13,6 +13,7 @@ def build_task_simulator(
     task: BenchmarkTask,
     *,
     registry: dict[str, ToolSpec] | None = None,
+    max_tool_calls: int | None = None,
 ) -> Simulator:
     scenario = suite.fixtures[task.fixture_id].model_copy(
         deep=True,
@@ -24,7 +25,7 @@ def build_task_simulator(
         limits=ExecutionLimits(
             allowed_tools=task.allowed_tools,
             forbidden_intents=task.forbidden_intents,
-            max_tool_calls=task.max_tool_calls,
+            max_tool_calls=(task.max_tool_calls if max_tool_calls is None else max_tool_calls),
         ),
         registry=registry,
     )

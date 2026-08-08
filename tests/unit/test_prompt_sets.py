@@ -65,3 +65,15 @@ def test_prompt_set_rejects_unknown_required_call_tool(
 
     with pytest.raises(ValueError, match="references unknown tools"):
         validate_prompt_set(invalid, suite)
+
+
+def test_prompt_set_rejects_budget_smaller_than_required_tool_set(
+    suite: BenchmarkSuite,
+) -> None:
+    prompt_set = load_prompt_set(ROOT / "benchmarks" / "model_prompts_v1.json")
+    task_id = "S03_FALSE_ALERT"
+    prompt = prompt_set.tasks[task_id].model_copy(update={"max_tool_calls": 3})
+    invalid = prompt_set.model_copy(update={"tasks": {task_id: prompt}})
+
+    with pytest.raises(ValueError, match="must cover all required tools"):
+        validate_prompt_set(invalid, suite)

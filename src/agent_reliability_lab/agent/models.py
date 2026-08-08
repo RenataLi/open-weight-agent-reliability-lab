@@ -71,6 +71,7 @@ class AgentRetryExpectation(StrictModel):
 
 class AgentTaskPrompt(StrictModel):
     prompt: str
+    max_tool_calls: PositiveInt | None = None
     require_report: bool = True
     required_tools: frozenset[str] = frozenset()
     required_evidence_tools: frozenset[str] = frozenset()

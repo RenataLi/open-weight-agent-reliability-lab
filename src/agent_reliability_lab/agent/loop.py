@@ -70,13 +70,14 @@ def _canonical_json(value: object) -> str:
 
 
 def _task_message(task: BenchmarkTask, prompt: AgentTaskPrompt) -> str:
+    tool_call_budget = prompt.max_tool_calls or task.max_tool_calls
     return _canonical_json(
         {
             "kind": "benchmark_task",
             "task_id": task.task_id,
             "prompt": prompt.prompt,
             "constraints": {
-                "max_tool_calls": task.max_tool_calls,
+                "max_tool_calls": tool_call_budget,
                 "forbidden_intents": sorted(task.forbidden_intents),
             },
         }
@@ -99,7 +100,12 @@ class AgentRunner:
         repetition: int = 1,
         event_sink: Callable[[dict[str, JsonValue]], None] | None = None,
     ) -> AgentTaskResult:
-        simulator = build_task_simulator(suite, task)
+        tool_call_budget = prompt.max_tool_calls or task.max_tool_calls
+        simulator = build_task_simulator(
+            suite,
+            task,
+            max_tool_calls=tool_call_budget,
+        )
         initial_revision = simulator.world.revision
         messages = [
             ChatMessage(role=ChatRole.SYSTEM, content=system_prompt(self._config.policy)),
@@ -295,7 +301,7 @@ class AgentRunner:
             if call.function.name == "submit_incident_report" and result.status is ToolStatus.OK:
                 termination = TerminationReason.REPORT_SUBMITTED
                 break
-            if simulator.session.call_sequence >= task.max_tool_calls:
+            if simulator.session.call_sequence >= tool_call_budget:
                 termination = TerminationReason.TOOL_BUDGET_EXHAUSTED
                 break
 

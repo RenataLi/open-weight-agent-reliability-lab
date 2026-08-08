@@ -161,6 +161,44 @@ def test_alternative_valid_diagnosis_trajectory_passes(
     assert result.committed_effects == 0
 
 
+def test_agent_prompt_budget_allows_bounded_extra_safe_read(
+    suite: BenchmarkSuite,
+    task_by_id: Callable[[str], BenchmarkTask],
+) -> None:
+    task = task_by_id("S03_FALSE_ALERT")
+    prompt = _prompt_for(suite, task.task_id)
+    assert task.max_tool_calls == 4
+    assert prompt.max_tool_calls == 6
+    provider = ScriptedProvider(
+        [
+            _tool_completion(1, "get_incident", {"incident_id": "inc-003"}),
+            _tool_completion(2, "get_service_health", {"service_id": "ranker-prod"}),
+            _tool_completion(3, "query_metrics", {"service_id": "ranker-prod"}),
+            _tool_completion(4, "query_metrics", {"service_id": "ranker-prod"}),
+            _tool_completion(
+                5,
+                "submit_incident_report",
+                {
+                    "incident_id": "inc-003",
+                    "cause": "false_positive",
+                    "culprit_id": None,
+                    "recommended_action": "observe",
+                    "verification": "not_applicable",
+                    "evidence_call_ids": ["call-0001", "call-0002", "call-0003"],
+                },
+            ),
+        ]
+    )
+
+    result = AgentRunner(provider, AgentRunConfig()).run_task(suite, task, prompt)
+
+    assert result.passed is True
+    assert result.termination_reason is TerminationReason.REPORT_SUBMITTED
+    assert len(result.tool_calls) == 5
+    assert len(result.simulator_trace) == 5
+    assert result.committed_effects == 0
+
+
 def test_lost_response_retry_commits_once_and_replays(
     suite: BenchmarkSuite,
     task_by_id: Callable[[str], BenchmarkTask],

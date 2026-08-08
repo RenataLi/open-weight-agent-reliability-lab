@@ -21,6 +21,17 @@ IdempotencyKey = Annotated[
 ]
 NonNegativeInt = Annotated[int, Field(strict=True, ge=0)]
 PositiveInt = Annotated[int, Field(strict=True, ge=1, le=100)]
+ExpectedRevision = Annotated[
+    int,
+    Field(
+        strict=True,
+        ge=0,
+        description=(
+            "Optimistic concurrency value: copy state_revision from the most recent tool "
+            "result for the current world; this is not a deployment number."
+        ),
+    ),
+]
 
 
 class GetIncidentArgs(StrictModel):
@@ -120,14 +131,14 @@ class GetApprovalArgs(StrictModel):
 class RollbackDeploymentArgs(StrictModel):
     service_id: Identifier
     target_deployment_id: Identifier
-    expected_revision: NonNegativeInt
+    expected_revision: ExpectedRevision
     idempotency_key: IdempotencyKey
     approval_id: Identifier | None = None
 
 
 class QuarantineDataSourceArgs(StrictModel):
     data_source_id: Identifier
-    expected_revision: NonNegativeInt
+    expected_revision: ExpectedRevision
     idempotency_key: IdempotencyKey
     approval_id: Identifier | None = None
 
