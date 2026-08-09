@@ -112,6 +112,15 @@ def verify_study_inputs(spec: StudySpec, project_root: Path) -> None:
             model.expected_vllm_arguments_sha256
         ):
             raise ValueError(f"safe vLLM argument hash changed for {model.model_key}")
+        if canonical_sha256(model.expected_container_environment) != (
+            model.expected_container_environment_sha256
+        ):
+            raise ValueError(f"safe container environment hash changed for {model.model_key}")
+        for name, value in model.expected_container_environment.items():
+            if f'{name}: "{value}"' not in compose_text:
+                raise ValueError(
+                    f"container environment is not pinned in Compose for {model.model_key}"
+                )
 
 
 def _cell_id(

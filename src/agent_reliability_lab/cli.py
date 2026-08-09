@@ -255,7 +255,11 @@ def _docker_model_provenance() -> dict[str, JsonValue]:
     command_json = _command_output(
         ["docker", "inspect", "--format", "{{json .Config.Cmd}}", container]
     )
+    environment_json = _command_output(
+        ["docker", "inspect", "--format", "{{json .Config.Env}}", container]
+    )
     safe_arguments = _safe_vllm_arguments(command_json)
+    safe_environment = _safe_container_environment(environment_json)
     command_sha256 = _sanitized_container_command_sha256(command_json)
     repo_digests_json = (
         _command_output(
@@ -268,12 +272,40 @@ def _docker_model_provenance() -> dict[str, JsonValue]:
         "observed_container_image_id": image_id,
         "observed_container_image_reference": configured_image,
         "observed_container_command_sha256": command_sha256,
+        "observed_container_environment": safe_environment,
+        "observed_container_environment_sha256": (
+            _json_digest(safe_environment) if safe_environment is not None else None
+        ),
         "observed_vllm_arguments": safe_arguments or None,
         "observed_vllm_arguments_sha256": (
             _json_digest(safe_arguments) if safe_arguments else None
         ),
         "observed_image_repo_digests_json": repo_digests_json,
     }
+
+
+def _safe_container_environment(environment_json: str | None) -> dict[str, JsonValue] | None:
+    """Return only non-secret container settings that change the pinned inference behavior."""
+
+    if environment_json is None:
+        return None
+    try:
+        environment = json.loads(environment_json)
+    except ValueError:
+        return None
+    if not isinstance(environment, list) or not all(isinstance(item, str) for item in environment):
+        return None
+
+    allowed_values = {"VLLM_USE_V2_MODEL_RUNNER": {"0", "1"}}
+    observed: dict[str, JsonValue] = {}
+    for item in environment:
+        name, separator, value = item.partition("=")
+        if name not in allowed_values:
+            continue
+        if not separator or value not in allowed_values[name] or name in observed:
+            return None
+        observed[name] = value
+    return observed
 
 
 def _safe_vllm_arguments(command_json: str | None) -> dict[str, JsonValue]:

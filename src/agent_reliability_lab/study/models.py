@@ -49,6 +49,8 @@ class StudyModelSpec(StrictModel):
     ]
     tool_call_parser: str
     expected_container_command_sha256: Sha256
+    expected_container_environment: dict[str, str]
+    expected_container_environment_sha256: Sha256
     expected_vllm_arguments: dict[str, JsonValue]
     expected_vllm_arguments_sha256: Sha256
 
@@ -58,6 +60,15 @@ class StudyModelSpec(StrictModel):
             raise ValueError("model_id must not be empty")
         if not self.tool_call_parser.strip():
             raise ValueError("tool_call_parser must not be empty")
+        allowed_environment = {"VLLM_USE_V2_MODEL_RUNNER": {"0", "1"}}
+        for name, environment_value in self.expected_container_environment.items():
+            if (
+                name not in allowed_environment
+                or environment_value not in allowed_environment[name]
+            ):
+                raise ValueError(
+                    "expected_container_environment contains an unapproved name or value"
+                )
         required_arguments: dict[str, JsonValue] = {
             "model": self.model_id,
             "revision": self.revision,

@@ -245,7 +245,14 @@ M3 adds a second pinned deployment:
 - [`mistralai/Ministral-3-8B-Instruct-2512-BF16`](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-BF16/tree/f6fae9795746f63c9be8344932f01275f3c63734)
   at commit `f6fae9795746f63c9be8344932f01275f3c63734`;
 - the same immutable vLLM 0.26.0 image digest, with language-model-only loading, Mistral
-  tokenizer/config/load modes, BF16, and the `mistral` automatic tool-call parser.
+  tokenizer/config/load modes, BF16, the `mistral` automatic tool-call parser, and
+  `VLLM_USE_V2_MODEL_RUNNER=0` for Docker Desktop/WSL2 compatibility after a pre-holdout canary
+  found that unified virtual addressing was unavailable.
+
+M3 manifests persist and exact-validate only an explicit allowlist of behavior-relevant container
+environment settings, currently `VLLM_USE_V2_MODEL_RUNNER`; values of unrelated variables and
+secrets are never copied from Docker inspection. This environment digest complements the complete
+sanitized container-command digest and the byte hash of the Compose file.
 
 The cross-model axis is explicitly a comparison of full inference stacks: weights, tokenizer,
 chat template, serving configuration, and parser. It is not interpreted as an isolated

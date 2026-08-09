@@ -4,6 +4,8 @@ services:
     container_name: agent-reliability-vllm
     restart: "no"
     ipc: host
+    environment:
+      VLLM_USE_V2_MODEL_RUNNER: "0"
     ports:
       - "127.0.0.1:8000:8000"
     volumes:

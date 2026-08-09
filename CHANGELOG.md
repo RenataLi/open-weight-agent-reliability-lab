@@ -22,6 +22,9 @@ All notable project changes will be documented here.
   generalization units, and no IID confidence interval or p-value is reported;
 - a development-suite-only canary protocol that keeps the first prospective-panel exposure scored
   and prohibits outcome-driven tuning or reruns.
+- a pre-holdout Docker Desktop/WSL2 compatibility amendment that pins Ministral to vLLM's legacy
+  model runner with `VLLM_USE_V2_MODEL_RUNNER=0`, records only an explicit secret-free environment
+  allowlist, and rejects scored artifacts whose observed setting differs from the protocol.
 
 ### Evidence status
 

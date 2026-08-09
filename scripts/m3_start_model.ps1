@@ -38,14 +38,21 @@ if ($LASTEXITCODE -ne 0) {
 
 $healthy = $false
 for ($attempt = 1; $attempt -le 360; $attempt++) {
-    $status = docker inspect --format "{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}" agent-reliability-vllm 2>$null
-    if ($LASTEXITCODE -eq 0 -and $status -eq "healthy") {
-        $healthy = $true
-        break
-    }
-    if ($LASTEXITCODE -eq 0 -and $status -in "exited", "dead", "restarting") {
-        docker logs --tail 200 agent-reliability-vllm
-        throw "The $ModelProfile model container stopped before becoming healthy."
+    $inspection = docker inspect --format "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}" agent-reliability-vllm 2>$null
+    $inspectExitCode = $LASTEXITCODE
+    if ($inspectExitCode -eq 0) {
+        $stateAndHealth = ([string]$inspection).Trim() -split "\|", 2
+        $stateStatus = $stateAndHealth[0]
+        $healthStatus = if ($stateAndHealth.Count -eq 2) { $stateAndHealth[1] } else { "" }
+
+        if ($stateStatus -in "exited", "dead", "restarting") {
+            docker logs --tail 200 agent-reliability-vllm
+            throw "The $ModelProfile model container entered state '$stateStatus' before becoming healthy."
+        }
+        if ($stateStatus -eq "running" -and $healthStatus -eq "healthy") {
+            $healthy = $true
+            break
+        }
     }
     if ($attempt % 12 -eq 0) {
         Write-Output "Waiting for $($profile.DisplayName) health ($attempt/360). First startup may download weights."

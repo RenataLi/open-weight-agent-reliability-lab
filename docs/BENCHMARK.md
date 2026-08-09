@@ -120,6 +120,7 @@ Every task receives a clean copy of its fixture and runs sequentially. The comma
 - benchmark and prompt-set SHA-256 digests;
 - policy, repetition count, seed, temperature, top-p, token limit, and turn limit;
 - system-prompt contract version and the hash of the exact rendered prompt;
+- a secret-free allowlist and hash of behavior-relevant container environment settings;
 - whether an API key was configured, never its value.
 
 The runner requests one tool call at a time (`parallel_tool_calls: false`) and enforces that limit

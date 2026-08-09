@@ -60,6 +60,8 @@ def _manifest(spec: object, cell: object) -> dict[str, object]:
         "deployment_compose_sha256": model.deployment_compose_sha256,
         "observed_container_image_reference": model.vllm_image_reference,
         "observed_container_command_sha256": model.expected_container_command_sha256,
+        "observed_container_environment": model.expected_container_environment,
+        "observed_container_environment_sha256": (model.expected_container_environment_sha256),
         "observed_vllm_arguments": arguments,
         "observed_vllm_arguments_sha256": canonical_sha256(arguments),
         "observed_vllm_version": typed_spec.vllm_version,
@@ -115,6 +117,21 @@ def test_artifact_loader_rejects_tampered_execution_parameters(
     (cell_dir / "result.json").write_text("{}", encoding="utf-8")
 
     with pytest.raises(StudyArtifactError, match=rf"{field!r} mismatch"):
+        load_study_cell_artifact(spec, cell, tmp_path)
+
+
+def test_artifact_loader_rejects_tampered_container_environment(tmp_path: Path) -> None:
+    spec = load_study_spec(PROJECT_ROOT / "studies" / "m3_protocol.json")
+    plan = build_study_plan(spec)
+    cell = next(item for item in plan.cells if item.model_key == "ministral3-8b")
+    cell_dir = tmp_path / cell.cell_id
+    cell_dir.mkdir()
+    manifest = _manifest(spec, cell)
+    manifest["observed_container_environment"] = {"VLLM_USE_V2_MODEL_RUNNER": "1"}
+    (cell_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (cell_dir / "result.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(StudyArtifactError, match=r"observed_container_environment.*mismatch"):
         load_study_cell_artifact(spec, cell, tmp_path)
 
 

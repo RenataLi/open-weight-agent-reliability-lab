@@ -27,7 +27,7 @@ def test_preregistered_plan_has_stable_complete_cartesian_matrix() -> None:
     assert first == second
     assert canonical_sha256(first) == canonical_sha256(second)
     assert canonical_sha256(first) == (
-        "1c62479897632eae04c2d53a6cad0402ace451eb334ff8ad126f432bd9ef7476"
+        "9bfff599cd0444ae61b7a28681182bef239e92b84a10600c5e0f7f3c6128b065"
     )
     assert len(first.cells) == 24
     assert len({cell.cell_id for cell in first.cells}) == 24
@@ -48,7 +48,7 @@ def test_protocol_hash_and_every_pinned_input_are_reproducible() -> None:
     verify_study_inputs(spec, PROJECT_ROOT)
 
     assert canonical_sha256(spec) == (
-        "3738f4ea16279e827a868b82f2515fa2371cdebdb693828e1d6c3ec433c3911b"
+        "e3d28dea41f2a3d40c94ebbc363559d1a188b1f1662caed1bb49b15dac962d84"
     )
     assert spec.dataset.fixture_worlds == 3
     assert [model.revision for model in spec.models] == [
@@ -78,4 +78,12 @@ def test_protocol_rejects_posthoc_hypothesis_criterion_relaxation() -> None:
     raw["hypothesis_decision_criteria"]["primary_min_pooled_v2_hard_pass_gain"] = 5
 
     with pytest.raises(ValidationError):
+        StudySpec.model_validate(raw)
+
+
+def test_protocol_rejects_unapproved_container_environment() -> None:
+    raw = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    raw["models"][0]["expected_container_environment"] = {"HF_TOKEN": "secret"}
+
+    with pytest.raises(ValidationError, match="unapproved name or value"):
         StudySpec.model_validate(raw)

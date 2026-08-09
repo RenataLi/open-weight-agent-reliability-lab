@@ -134,6 +134,18 @@ def _validate_manifest(
         model_spec.expected_container_command_sha256,
         cell.cell_id,
     )
+    _expect(
+        manifest,
+        "observed_container_environment",
+        model_spec.expected_container_environment,
+        cell.cell_id,
+    )
+    _expect(
+        manifest,
+        "observed_container_environment_sha256",
+        model_spec.expected_container_environment_sha256,
+        cell.cell_id,
+    )
     observed_arguments = manifest.get("observed_vllm_arguments")
     if not isinstance(observed_arguments, dict):
         raise StudyArtifactError(f"cell {cell.cell_id} lacks observed vLLM arguments")

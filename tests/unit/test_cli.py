@@ -9,6 +9,8 @@ from typer.testing import CliRunner
 
 from agent_reliability_lab.agent.models import AgentSuiteResult
 from agent_reliability_lab.cli import (
+    _docker_model_provenance,
+    _safe_container_environment,
     _safe_vllm_arguments,
     _sanitized_container_command_sha256,
     app,
@@ -145,7 +147,7 @@ def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path)
     assert validated.exit_code == 0
     assert "24 cells" in validated.stdout
     assert "160 scored + 32 descriptive" in validated.stdout
-    assert "3738f4ea16279e827a868b82f2515fa2371cdebdb693828e1d6c3ec433c3911b" in (validated.stdout)
+    assert "e3d28dea41f2a3d40c94ebbc363559d1a188b1f1662caed1bb49b15dac962d84" in (validated.stdout)
 
     output = tmp_path / "study-plan.json"
     planned = runner.invoke(
@@ -265,6 +267,57 @@ def test_docker_command_provenance_allowlists_flags_without_secrets() -> None:
         "language-model-only": True,
     }
     assert "do-not-persist-me" not in json.dumps(observed)
+
+
+def test_container_environment_provenance_is_allowlisted_and_secret_free() -> None:
+    environment = json.dumps(
+        [
+            "PATH=/usr/local/bin",
+            "HF_TOKEN=do-not-persist-me",
+            "VLLM_USE_V2_MODEL_RUNNER=0",
+        ]
+    )
+
+    observed = _safe_container_environment(environment)
+
+    assert observed == {"VLLM_USE_V2_MODEL_RUNNER": "0"}
+    assert "do-not-persist-me" not in json.dumps(observed)
+    assert _safe_container_environment("not-json") is None
+    assert _safe_container_environment('["VLLM_USE_V2_MODEL_RUNNER=unexpected"]') is None
+
+
+def test_docker_provenance_records_exact_safe_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    container = "agent-reliability-vllm"
+    outputs = {
+        ("docker", "inspect", "--format", "{{.Image}}", container): "sha256:image-id",
+        ("docker", "inspect", "--format", "{{.Config.Image}}", container): "image@sha256:pin",
+        ("docker", "inspect", "--format", "{{json .Config.Cmd}}", container): '["--model","m"]',
+        ("docker", "inspect", "--format", "{{json .Config.Env}}", container): (
+            '["HF_TOKEN=secret","VLLM_USE_V2_MODEL_RUNNER=0"]'
+        ),
+        (
+            "docker",
+            "image",
+            "inspect",
+            "sha256:image-id",
+            "--format",
+            "{{json .RepoDigests}}",
+        ): '["image@sha256:pin"]',
+    }
+    monkeypatch.setattr(
+        "agent_reliability_lab.cli._command_output",
+        lambda arguments, **_: outputs.get(tuple(arguments)),
+    )
+
+    observed = _docker_model_provenance()
+
+    assert observed["observed_container_environment"] == {"VLLM_USE_V2_MODEL_RUNNER": "0"}
+    assert observed["observed_container_environment_sha256"] == (
+        "5e33d65eeccd9fd14aecd7d1f7442bf47bc308b8449a7f9cfb616a21a9184560"
+    )
+    assert "secret" not in json.dumps(observed)
 
 
 def test_complete_container_command_hash_redacts_secrets_and_binds_unknown_flags() -> None:

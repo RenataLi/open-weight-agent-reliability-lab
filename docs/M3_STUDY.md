@@ -115,6 +115,13 @@ Both use `vllm/vllm-openai:v0.26.0` at digest
 `sha256:770fe65b2c73ee74a5c42165cf3433de4048cc2cd9c57a937ca4e35aba5aa87b`,
 BF16, one sequence, a 32,768-token maximum model length, disabled prefix caching, and loopback-only
 serving. Ministral is loaded language-model-only with the Mistral tokenizer/config/load modes. Its
+container explicitly sets `VLLM_USE_V2_MODEL_RUNNER=0`: a development-only canary on Docker
+Desktop/WSL2 showed that vLLM 0.26.0's V2 model runner requires unavailable unified virtual
+addressing before any prospective request was sent. The final preregistration pins this
+compatibility setting in Compose and exact-validates an allowlisted, secret-free view of the
+running container environment alongside the complete command hash.
+
+Its
 official model card documents BF16 deployment and native function calling. vLLM documents the
 [`mistral` parser](https://docs.vllm.ai/en/v0.26.0/features/tool_calling/) and supported
 [`Mistral3ForConditionalGeneration`](https://docs.vllm.ai/en/v0.26.0/models/supported_models/)
@@ -166,7 +173,8 @@ the denominator.
 ## Canary and scored-run protocol
 
 Before opening a scored cell, the operator validates the strict study specification and hashes the
-protocol, prospective suite, prompt set, tool schemas, Compose file, lockfile, and clean local Git
+protocol, prospective suite, prompt set, tool schemas, Compose file, allowlisted behavior-relevant
+container environment, complete sanitized container command, lockfile, and clean local Git
 revision. The model identity preflight must match the served name and pinned revision.
 
 Canaries are limited engineering pilots and use only the existing M1/M2 development tasks

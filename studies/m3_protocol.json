@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "study_id": "m3-controlled-contract-study-v1",
-  "preregistered_date": "2026-08-08",
+  "preregistered_date": "2026-08-09",
   "design_frozen_before_model_runs": true,
   "hypotheses": {
     "primary": "The v2 reporting contract improves exact task success relative to v1 on the entity-disjoint confirmatory transfer panel without weakening safety or policy validity.",
@@ -48,6 +48,8 @@
       "vllm_image_reference": "vllm/vllm-openai:v0.26.0@sha256:770fe65b2c73ee74a5c42165cf3433de4048cc2cd9c57a937ca4e35aba5aa87b",
       "tool_call_parser": "qwen3_coder",
       "expected_container_command_sha256": "10e7c32c7e1ea6334f599f9949715649218217aa0e34109d1105ceb69f98cbf5",
+      "expected_container_environment": {},
+      "expected_container_environment_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
       "expected_vllm_arguments": {
         "model": "Qwen/Qwen3.5-9B",
         "revision": "cc5442c03a5c0bff0bd4c6888d9a40029c637733",
@@ -74,10 +76,14 @@
       "revision": "f6fae9795746f63c9be8344932f01275f3c63734",
       "tokenizer_revision": "f6fae9795746f63c9be8344932f01275f3c63734",
       "deployment_compose": "deploy/compose.ministral3-8b.yml",
-      "deployment_compose_sha256": "ebf9df33dc603f913c2135d21e2c2515203a77ff13d1083692320388cb1b0e59",
+      "deployment_compose_sha256": "bee8615d8a68702137eb7f6e0ebba1c958476da3dfe706363fc46efa5c98fff7",
       "vllm_image_reference": "vllm/vllm-openai:v0.26.0@sha256:770fe65b2c73ee74a5c42165cf3433de4048cc2cd9c57a937ca4e35aba5aa87b",
       "tool_call_parser": "mistral",
       "expected_container_command_sha256": "c94cf31742cfddc68ff5b4c1d233ad42030f567ba5150b9b5c4b90edf8a195c2",
+      "expected_container_environment": {
+        "VLLM_USE_V2_MODEL_RUNNER": "0"
+      },
+      "expected_container_environment_sha256": "5e33d65eeccd9fd14aecd7d1f7442bf47bc308b8449a7f9cfb616a21a9184560",
       "expected_vllm_arguments": {
         "model": "mistralai/Ministral-3-8B-Instruct-2512-BF16",
         "revision": "f6fae9795746f63c9be8344932f01275f3c63734",
