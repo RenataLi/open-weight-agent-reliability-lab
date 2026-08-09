@@ -1,0 +1,50 @@
+name: Bug report
+description: Report a reproducible defect in the simulator, agent loop, evaluator, or study tooling.
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for helping make the reliability contract stronger.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened, and what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include the command, task ID, and smallest relevant configuration.
+      render: powershell
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Python, OS, model/provider, and revision details.
+      placeholder: Python 3.12; Windows 11 or Ubuntu; provider/model/revision
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized evidence
+      description: Share only redacted logs or hashes. Never attach credentials or private traces.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submission checks
+      options:
+        - label: I reproduced this on the latest main branch.
+          required: true
+        - label: I removed credentials, private data, model weights, and raw transcripts.
+          required: true

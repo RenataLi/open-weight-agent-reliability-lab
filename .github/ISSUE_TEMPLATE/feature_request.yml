@@ -1,0 +1,28 @@
+name: Feature request
+description: Propose a new failure mode, evaluator invariant, provider, or reproducibility feature.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Reliability problem
+      description: Which concrete failure mode or evaluation gap should this address?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed contract
+      description: Describe observable inputs, expected safe behavior, and exact pass criteria.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Validation plan
+      description: How should the change be tested without weakening an existing invariant?
+    validations:
+      required: true

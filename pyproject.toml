@@ -5,7 +5,7 @@ build-backend = "uv_build"
 [project]
 name = "open-weight-agent-reliability-lab"
 version = "0.3.0"
-description = "Deterministic reliability benchmark for open-weight tool-calling agents."
+description = "Deterministic fault-injection and exact-outcome benchmark for open-weight tool-calling agents."
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "Apache-2.0"
@@ -20,8 +20,10 @@ keywords = [
   "tool-calling",
 ]
 classifiers = [
-  "Development Status :: 3 - Alpha",
+  "Development Status :: 4 - Beta",
+  "Operating System :: OS Independent",
   "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Typing :: Typed",
 ]
 dependencies = [
@@ -29,6 +31,11 @@ dependencies = [
   "pydantic>=2.13.4,<3",
   "typer>=0.27.1,<0.28",
 ]
+
+[project.urls]
+Documentation = "https://github.com/RenataLi/open-weight-agent-reliability-lab/tree/main/docs"
+Issues = "https://github.com/RenataLi/open-weight-agent-reliability-lab/issues"
+Repository = "https://github.com/RenataLi/open-weight-agent-reliability-lab"
 
 [project.scripts]
 agent-reliability-lab = "agent_reliability_lab.cli:main"

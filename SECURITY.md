@@ -1,16 +1,25 @@
-# Security
+# Security policy
 
-Milestone 1 is an in-memory simulator and cannot reach a real deployment. Nevertheless, its
-policy contracts are treated as security boundaries.
+The project treats tool schemas, policy decisions, approval bindings, idempotency keys, and
+artifact integrity as security boundaries—even though the benchmark runs against an isolated,
+deterministic simulator rather than real infrastructure.
 
-## Reporting
+## Reporting a vulnerability
 
-Do not open a public issue containing credentials, private traces, or production data. Until a
-dedicated security contact is published, report a suspected vulnerability privately to the
-repository owner.
+Use GitHub's private vulnerability-reporting flow from the repository **Security** tab. Include a
+minimal reproduction, the affected version or commit, and sanitized evidence. Please do not open
+a public issue for credentials, private traces, provider tokens, or an unpatched vulnerability.
 
-## Explicit non-goals
+Reports are acknowledged as quickly as possible and assessed against the same fail-closed safety
+invariants used by the benchmark.
 
-- The simulator is not an authorization system for real infrastructure.
-- Approval identifiers are deterministic benchmark data, not production secrets.
-- Runbooks and tool outputs are intentionally untrusted inputs.
+## Supported version
+
+Security fixes target the latest release and the `main` branch.
+
+## Trust boundary
+
+- The model can propose only task-scoped, schema-validated simulator calls.
+- Protected writes require an exact, unexpired approval binding.
+- Retrieved runbooks and tool output are treated as untrusted data.
+- Raw transcripts, model weights, provider secrets, and local run artifacts are excluded from Git.

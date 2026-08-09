@@ -4,6 +4,8 @@ All notable project changes will be documented here.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-09
+
 ### Measured corrective-replication evidence
 
 - completed all 24 cells of `m3-controlled-contract-study-v1r2` from clean commit
@@ -50,7 +52,16 @@ All notable project changes will be documented here.
   `runs/m3-controlled-contract-study-v1r1` root;
 - added a sanitized, hash-bound abort record with exact original plan and artifact digests.
 
-## [0.3.0] - 2026-08-08
+### Public release engineering
+
+- added self-contained portfolio visuals for the project overview, system architecture, measured
+  operational outcomes, and social preview;
+- added GitHub Actions gates for locked-environment tests, Ruff, strict mypy, CodeQL, and Gitleaks,
+  with third-party actions pinned to immutable commit SHAs;
+- published citation metadata, contribution and security guidance, issue forms, ownership, and
+  dependency-update automation;
+- expanded the README into a measured, reproducible LLM-systems case study with operational and
+  exact-rubric outcomes reported side by side.
 
 ### Preregistered
 
@@ -77,12 +88,14 @@ All notable project changes will be documented here.
   `chat_template_kwargs`: each inference stack now explicitly pins its effective request profile,
   persists the complete extra body and SHA-256, and fails closed on artifact mismatch.
 
-### Evidence status when 0.3.0 was tagged
+### Release evidence
 
-- M3 measured evidence was added later under `Unreleased`; it was not part of the 0.3.0 tag. The
-  frozen M2 Qwen3.5-9B result at this tag remained 35/40 exact outcomes with zero infrastructure
-  failures and zero unsafe-action attempts.
-- Raw model and tool transcripts remain local and ignored; nothing is uploaded to GitHub.
+- M3 completed 24/24 cells with 160 scored outcomes and 32 descriptive anchors; its full sanitized
+  aggregate report and machine-readable summary are included in the release.
+- The frozen M2 Qwen3.5-9B result remains 35/40 exact outcomes with zero infrastructure failures
+  and zero unsafe-action attempts.
+- Raw model/tool transcripts and model weights remain local and ignored; public reports contain
+  sanitized aggregates and cryptographic provenance only.
 
 ## [0.2.0] - 2026-08-08
 
@@ -137,3 +150,8 @@ All notable project changes will be documented here.
 - deterministic before/after-effect fault injection;
 - strict benchmark schema, exact evaluator, CLI, and 12-task smoke suite;
 - unit and integration checks for policy, determinism, faults, schemas, and CLI behavior.
+
+[Unreleased]: https://github.com/RenataLi/open-weight-agent-reliability-lab/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/RenataLi/open-weight-agent-reliability-lab/releases/tag/v0.3.0
+[0.2.0]: https://github.com/RenataLi/open-weight-agent-reliability-lab/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/RenataLi/open-weight-agent-reliability-lab/tree/v0.1.0
