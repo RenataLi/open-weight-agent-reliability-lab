@@ -1,0 +1,12 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Deterministic benchmark identifiers and source expressions that resemble generic keys."
+targetRules = ["generic-api-key"]
+regexTarget = "line"
+regexes = [
+  '''idempotency_key["']?\s*[:=]\s*["'](?:m3-quarantine-82|policy-test-001)["']''',
+  '''tokenizer[_-]revision["']?\s*:\s*["']f6fae9795746f63c9be8344932f01275f3c63734["']''',
+  '''comparison\.model_key:\s*comparison\.v2_passed_runs\s*-\s*comparison\.v1_passed_runs''',
+]

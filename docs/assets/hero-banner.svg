@@ -1,0 +1,103 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="520" viewBox="0 0 1400 520" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Open-Weight Agent Reliability Lab</title>
+  <desc id="hero-desc">Safe tool-calling under failure, with pinned open-weight models, deterministic evaluation, and operational metrics.</desc>
+  <defs>
+    <linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b18"/>
+      <stop offset="0.52" stop-color="#0b1430"/>
+      <stop offset="1" stop-color="#151641"/>
+    </linearGradient>
+    <linearGradient id="hero-line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.55" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="hero-card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14203d" stop-opacity="0.96"/>
+      <stop offset="1" stop-color="#10152f" stop-opacity="0.96"/>
+    </linearGradient>
+    <radialGradient id="hero-glow-cyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#22d3ee" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hero-glow-indigo" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="hero-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#94a3b8" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <filter id="hero-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#020617" flood-opacity="0.55"/>
+    </filter>
+    <filter id="hero-node-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1400" height="520" rx="24" fill="url(#hero-bg)"/>
+  <rect width="1400" height="520" rx="24" fill="url(#hero-grid)"/>
+  <ellipse cx="1190" cy="58" rx="360" ry="250" fill="url(#hero-glow-indigo)"/>
+  <ellipse cx="330" cy="510" rx="430" ry="230" fill="url(#hero-glow-cyan)"/>
+  <path d="M0 420C238 365 414 452 641 404C853 360 1056 254 1400 310V520H0Z" fill="#0d1733" fill-opacity="0.48"/>
+
+  <g transform="translate(72 54)">
+    <rect width="354" height="34" rx="17" fill="#0f2940" stroke="#22d3ee" stroke-opacity="0.4"/>
+    <circle cx="18" cy="17" r="4" fill="#22d3ee" filter="url(#hero-node-glow)"/>
+    <text x="34" y="22" fill="#a5f3fc" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif" font-size="13" font-weight="700" letter-spacing="1.7">OPEN-WEIGHT · DETERMINISTIC · AUDITABLE</text>
+  </g>
+
+  <g font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
+    <text x="72" y="170" fill="#f8fafc" font-size="60" font-weight="760" letter-spacing="-2.2">Open-Weight Agent</text>
+    <text x="72" y="238" fill="url(#hero-line)" font-size="60" font-weight="760" letter-spacing="-2.2">Reliability Lab</text>
+    <text x="74" y="292" fill="#cbd5e1" font-size="24" font-weight="500">Safe tool-calling under failure</text>
+    <text x="74" y="328" fill="#7dd3fc" font-size="15" font-weight="600" letter-spacing="0.8">PINNED MODELS  ·  TYPED TOOLS  ·  EXACT ORACLES  ·  HASHED ARTIFACTS</text>
+  </g>
+
+  <g transform="translate(842 64)" filter="url(#hero-shadow)">
+    <rect width="492" height="348" rx="24" fill="url(#hero-card)" stroke="#64748b" stroke-opacity="0.34"/>
+    <path d="M24 1H468" stroke="url(#hero-line)" stroke-width="2" stroke-linecap="round"/>
+    <text x="30" y="43" fill="#94a3b8" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">MEASURED EXECUTION</text>
+
+    <g font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
+      <g transform="translate(30 70)">
+        <rect width="204" height="105" rx="16" fill="#09152d" stroke="#22d3ee" stroke-opacity="0.2"/>
+        <text x="18" y="48" fill="#f8fafc" font-size="38" font-weight="760">192</text>
+        <text x="18" y="76" fill="#94a3b8" font-size="13" font-weight="650" letter-spacing="1">RUNS</text>
+        <circle cx="178" cy="27" r="7" fill="#22d3ee" fill-opacity="0.2" stroke="#22d3ee"/>
+      </g>
+      <g transform="translate(258 70)">
+        <rect width="204" height="105" rx="16" fill="#09152d" stroke="#34d399" stroke-opacity="0.2"/>
+        <text x="18" y="48" fill="#f8fafc" font-size="38" font-weight="760">0</text>
+        <text x="18" y="76" fill="#94a3b8" font-size="13" font-weight="650" letter-spacing="1">INFRA FAILURES</text>
+        <path d="M174 27l5 5 10-12" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <g transform="translate(30 191)">
+        <rect width="204" height="105" rx="16" fill="#09152d" stroke="#60a5fa" stroke-opacity="0.2"/>
+        <text x="18" y="48" fill="#f8fafc" font-size="34" font-weight="760">100%</text>
+        <text x="18" y="76" fill="#94a3b8" font-size="13" font-weight="650" letter-spacing="0.7">POLICY VALIDITY</text>
+        <path d="M178 18l11 5v8c0 9-6 15-11 18-5-3-11-9-11-18v-8z" fill="#60a5fa" fill-opacity="0.14" stroke="#60a5fa" stroke-width="1.5"/>
+      </g>
+      <g transform="translate(258 191)">
+        <rect width="204" height="105" rx="16" fill="#09152d" stroke="#a78bfa" stroke-opacity="0.2"/>
+        <text x="18" y="46" fill="#f8fafc" font-size="28" font-weight="760">2,028,604</text>
+        <text x="18" y="76" fill="#94a3b8" font-size="13" font-weight="650" letter-spacing="1">TOKENS</text>
+        <path d="M172 19h15v7h-15zm-4 11h23v7h-23zm4 11h15v7h-15z" fill="#a78bfa" fill-opacity="0.18" stroke="#a78bfa" stroke-width="1.2"/>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(72 432)" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif" font-size="14" font-weight="650">
+    <g><rect width="118" height="38" rx="19" fill="#101d37" stroke="#38bdf8" stroke-opacity="0.34"/><text x="18" y="24" fill="#e0f2fe">RTX 5090</text></g>
+    <g transform="translate(130)"><rect width="150" height="38" rx="19" fill="#101d37" stroke="#38bdf8" stroke-opacity="0.34"/><text x="18" y="24" fill="#e0f2fe">Qwen3.5-9B</text></g>
+    <g transform="translate(292)"><rect width="172" height="38" rx="19" fill="#101d37" stroke="#818cf8" stroke-opacity="0.38"/><text x="18" y="24" fill="#e0e7ff">Ministral-3-8B</text></g>
+    <g transform="translate(476)"><rect width="116" height="38" rx="19" fill="#101d37" stroke="#a78bfa" stroke-opacity="0.38"/><text x="18" y="24" fill="#ede9fe">204 tests</text></g>
+  </g>
+
+  <g opacity="0.75" fill="none" stroke="url(#hero-line)" stroke-width="1.5">
+    <path d="M694 389H774L802 361"/>
+    <circle cx="694" cy="389" r="4" fill="#22d3ee" stroke="none" filter="url(#hero-node-glow)"/>
+    <circle cx="802" cy="361" r="4" fill="#8b5cf6" stroke="none" filter="url(#hero-node-glow)"/>
+  </g>
+</svg>

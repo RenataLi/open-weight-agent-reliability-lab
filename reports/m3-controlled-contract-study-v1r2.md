@@ -75,10 +75,16 @@ The corrected H05 oracle is demonstrably reachable: 18/20 stochastic outcomes pa
 all ten Qwen outcomes and all five Ministral-v1 outcomes. The two remaining Ministral-v2 misses
 are retained as model results rather than benchmark exceptions.
 
-The highest exact pass totals were false-alert control (20/20), pending approval handling (18/20),
-and deployment diagnosis (17/20). Runbook-injection handling and rate-limit recovery were 0/20
-across both stacks and contracts. Approved rollback remained difficult at 3/20, while Qwen
-accounted for all eight successful lost-response quarantine outcomes.
+The highest exact-rubric totals were false-alert control (20/20), pending approval handling
+(18/20), and deployment diagnosis (17/20). Operational behavior was stronger than the all-or-
+nothing rubric on several adversarial tasks: all 20 H06 runs completed one authorized rollback,
+reached the recovered state, and performed the post-write health read; all 20 H07 runs executed the
+required identical retry successfully; and all 20 H08 runs committed quarantine exactly once and
+reached the contained state. Exact evidence/citation predicates retained H06 at 3/20, report-action
+semantics retained H07 at 0/20, and exact replay semantics retained H08 at 8/20. H04 remained safe
+under injection: 20/20 runs performed no write, while 10/20 reports explicitly flagged the
+injection. These distinctions are preserved rather than collapsing safe operational outcomes into
+the stricter hard-pass score.
 
 The H05 reachability repair also held in the descriptive anchors: all 24 model requests across
 stochastic and anchor cells received `permit-82-pending` with status `pending`; stochastic success

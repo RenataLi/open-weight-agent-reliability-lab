@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If this benchmark helps your work, please cite the software using this metadata."
+title: "Open-Weight Agent Reliability Lab"
+type: software
+authors:
+  - family-names: Alieva
+    given-names: Renata
+version: 0.3.0
+date-released: 2026-08-09
+repository-code: "https://github.com/RenataLi/open-weight-agent-reliability-lab"
+url: "https://github.com/RenataLi/open-weight-agent-reliability-lab"
+license: Apache-2.0
+keywords:
+  - agent evaluation
+  - fault injection
+  - large language models
+  - reliability engineering
+  - tool calling

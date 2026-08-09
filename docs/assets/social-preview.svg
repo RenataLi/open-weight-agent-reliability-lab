@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="social-title social-desc">
+  <title id="social-title">Open-Weight Agent Reliability Lab</title>
+  <desc id="social-desc">GitHub social preview for a safety-first open-weight tool-calling reliability benchmark.</desc>
+  <defs>
+    <linearGradient id="social-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#050b18"/>
+      <stop offset="0.56" stop-color="#0a1430"/>
+      <stop offset="1" stop-color="#181540"/>
+    </linearGradient>
+    <linearGradient id="social-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.55" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <radialGradient id="social-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#8b5cf6" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="social-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#cbd5e1" stroke-opacity="0.06"/>
+    </pattern>
+    <filter id="social-shadow" x="-30%" y="-30%" width="160%" height="180%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#020617" flood-opacity="0.58"/>
+    </filter>
+    <filter id="social-node-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1280" height="640" rx="28" fill="url(#social-bg)"/>
+  <rect width="1280" height="640" rx="28" fill="url(#social-grid)"/>
+  <ellipse cx="1080" cy="95" rx="350" ry="280" fill="url(#social-glow)"/>
+  <ellipse cx="110" cy="635" rx="390" ry="210" fill="#22d3ee" fill-opacity="0.08"/>
+  <path d="M0 514C220 466 390 530 604 493C830 454 1010 348 1280 403V640H0Z" fill="#0d1733" fill-opacity="0.56"/>
+
+  <g font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif">
+    <g transform="translate(66 58)">
+      <rect width="312" height="38" rx="19" fill="#0d263d" stroke="#22d3ee" stroke-opacity="0.38"/>
+      <circle cx="20" cy="19" r="5" fill="#22d3ee" filter="url(#social-node-glow)"/>
+      <text x="38" y="25" fill="#a5f3fc" font-size="13" font-weight="740" letter-spacing="1.6">OPEN-WEIGHT AGENT SYSTEMS</text>
+    </g>
+    <text x="66" y="190" fill="#f8fafc" font-size="62" font-weight="780" letter-spacing="-2.2">Open-Weight Agent</text>
+    <text x="66" y="263" fill="url(#social-accent)" font-size="62" font-weight="780" letter-spacing="-2.2">Reliability Lab</text>
+    <text x="68" y="314" fill="#cbd5e1" font-size="24" font-weight="520">Safe tool-calling under failure</text>
+    <text x="68" y="350" fill="#7dd3fc" font-size="14" font-weight="680" letter-spacing="1">TYPED TOOLS · POLICY GATES · DETERMINISTIC FAULTS · HASHED EVIDENCE</text>
+  </g>
+
+  <g transform="translate(893 85)" filter="url(#social-shadow)">
+    <rect width="300" height="300" rx="34" fill="#111c38" stroke="#818cf8" stroke-opacity="0.38"/>
+    <path d="M150 48L226 79V139C226 202 181 239 150 258C119 239 74 202 74 139V79Z" fill="#312e81" fill-opacity="0.46" stroke="url(#social-accent)" stroke-width="3"/>
+    <path d="M111 148L139 176L195 112" fill="none" stroke="#67e8f9" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="150" cy="150" r="112" fill="none" stroke="#a78bfa" stroke-opacity="0.12" stroke-width="2"/>
+    <circle cx="150" cy="150" r="128" fill="none" stroke="#22d3ee" stroke-opacity="0.09"/>
+  </g>
+
+  <g transform="translate(66 438)" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif" filter="url(#social-shadow)">
+    <g>
+      <rect width="330" height="116" rx="20" fill="#0b1730" stroke="#22d3ee" stroke-opacity="0.28"/>
+      <text x="26" y="57" fill="#f8fafc" font-size="39" font-weight="780">192</text>
+      <text x="26" y="87" fill="#94a3b8" font-size="13" font-weight="720" letter-spacing="1.5">MEASURED RUNS</text>
+      <circle cx="294" cy="31" r="8" fill="#22d3ee" fill-opacity="0.22" stroke="#22d3ee"/>
+    </g>
+    <g transform="translate(350)">
+      <rect width="330" height="116" rx="20" fill="#0b1730" stroke="#34d399" stroke-opacity="0.28"/>
+      <text x="26" y="57" fill="#f8fafc" font-size="39" font-weight="780">0</text>
+      <text x="26" y="87" fill="#94a3b8" font-size="13" font-weight="720" letter-spacing="1.5">UNSAFE ATTEMPTS · M3 SIM</text>
+      <path d="M282 34l8 8 17-20" fill="none" stroke="#34d399" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g transform="translate(700)">
+      <rect width="427" height="116" rx="20" fill="#0b1730" stroke="#a78bfa" stroke-opacity="0.3"/>
+      <text x="26" y="55" fill="#f8fafc" font-size="31" font-weight="780">EXACT ORACLE</text>
+      <text x="26" y="87" fill="#94a3b8" font-size="13" font-weight="720" letter-spacing="1.35">NO LLM-AS-JUDGE</text>
+      <path d="M374 24h24v30h-24zM362 34h12M398 34h12M382 54v18" fill="none" stroke="#c4b5fd" stroke-width="2.5" stroke-linecap="round"/>
+    </g>
+  </g>
+</svg>
