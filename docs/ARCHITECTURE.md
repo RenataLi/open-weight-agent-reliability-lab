@@ -84,7 +84,9 @@ seeds, and eight tasks. The 160 stochastic outcomes are eligible for promotion g
 temperature-zero anchors are descriptive only. Seeds measure decoding stability. Because the
 eight tasks come from only three worlds, tasks are the generalization units and the study reports
 conditional paired summaries rather than IID confidence intervals or p-values. See the
-[M3 preregistration](M3_STUDY.md). No M3 model result is reported yet.
+[M3 repaired-study preregistration](M3_STUDY.md). Original v1 is an excluded harness abort with
+one complete cell, one partial cell, and 22 unrun cells; it supports no aggregate or promotion
+conclusion. Version v1r1 reruns the complete matrix under a separately bound protocol.
 
 ## Provider boundary
 
@@ -222,6 +224,8 @@ A process interruption can therefore leave a manifest and event prefix without a
 cannot expose a partially written JSON result. Existing run directories are never overwritten.
 Secrets are not persisted: the manifest records only whether the configured API-key environment
 variable was present, and the recorded provider URL excludes credentials, query, and fragment.
+Scored M3 manifests additionally bind the repaired `study_id` and canonical protocol SHA-256, so
+parent-study cells cannot be accepted through copying or a mistaken cells-directory argument.
 
 ## Reproducibility envelope
 

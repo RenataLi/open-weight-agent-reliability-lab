@@ -258,7 +258,7 @@ class Simulator:
         try:
             parsed = spec.input_model.model_validate(arguments)
         except ValidationError as exc:
-            validation_errors = json.loads(json.dumps(exc.errors(include_url=False)))
+            validation_errors = json.loads(exc.json(include_url=False))
             details = {"validation_errors": cast(JsonValue, validation_errors)}
             return self._typed_error(
                 call_id=call_id,

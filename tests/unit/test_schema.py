@@ -53,6 +53,36 @@ def test_bool_is_not_accepted_as_strict_integer(
     assert result.error is not None and result.error.code == "invalid_arguments"
 
 
+def test_model_validator_error_context_is_json_serialized(
+    task_by_id: Callable[[str], BenchmarkTask],
+    simulator_for: Callable[[BenchmarkTask], Simulator],
+) -> None:
+    simulator = simulator_for(task_by_id("S01_BAD_DEPLOY_DIAGNOSIS"))
+
+    result = simulator.call_tool(
+        "submit_incident_report",
+        {
+            "incident_id": "inc-001",
+            "cause": "bad_deployment",
+            "culprit_id": None,
+            "recommended_action": "rollback",
+            "verification": "pending",
+            "evidence_call_ids": ["call-0001"],
+        },
+    )
+
+    assert result.error is not None and result.error.code == "invalid_arguments"
+    validation_errors = result.error.details["validation_errors"]
+    assert isinstance(validation_errors, list)
+    validation_error = validation_errors[0]
+    assert isinstance(validation_error, dict)
+    assert validation_error["type"] == "value_error"
+    context = validation_error["ctx"]
+    assert isinstance(context, dict)
+    assert context["error"] == ("bad_deployment and stale_data reports require culprit_id")
+    json.dumps(result.model_dump(mode="json"), allow_nan=False)
+
+
 def test_invalid_world_invariant_is_rejected(
     task_by_id: Callable[[str], BenchmarkTask],
     simulator_for: Callable[[BenchmarkTask], Simulator],

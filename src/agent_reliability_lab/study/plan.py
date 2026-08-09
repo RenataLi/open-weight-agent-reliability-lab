@@ -90,6 +90,11 @@ def verify_study_inputs(spec: StudySpec, project_root: Path) -> None:
     uv_lock = project_root / "uv.lock"
     if not uv_lock.is_file() or file_sha256(uv_lock) != spec.uv_lock_sha256:
         raise ValueError("uv.lock does not match the preregistered protocol")
+    abort_record = project_root / spec.lineage.abort_record_path
+    if not abort_record.is_file():
+        raise FileNotFoundError(f"study abort record is missing: {abort_record}")
+    if file_sha256(abort_record) != spec.lineage.abort_record_sha256:
+        raise ValueError("study abort record does not match the repaired-study lineage")
     for model in spec.models:
         compose_path = project_root / model.deployment_compose
         if not compose_path.is_file():

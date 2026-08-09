@@ -2,6 +2,21 @@
 
 All notable project changes will be documented here.
 
+## [Unreleased]
+
+### Repaired study revision
+
+- archived `m3-controlled-contract-study-v1` after one complete 3/8 cell, one partial cell, and 22
+  unrun cells; the attempt is excluded and supports no aggregate or promotion conclusion;
+- fixed only generic Pydantic validation-error serialization after the harness raised `TypeError`
+  on a nested `ValueError`; prompts, holdout, evaluator, gates, sampling, model stacks, and request
+  bodies remain unchanged;
+- preregistered `m3-controlled-contract-study-v1r1` as a confirmatory full-matrix rerun after a
+  harness-only abort, explicitly not a pristine first-pass prospective study;
+- bound every repaired cell to the exact study ID and protocol SHA-256 under a collision-free
+  `runs/m3-controlled-contract-study-v1r1` root;
+- added a sanitized, hash-bound abort record with exact original plan and artifact digests.
+
 ## [0.3.0] - 2026-08-08
 
 ### Preregistered
@@ -29,7 +44,7 @@ All notable project changes will be documented here.
   `chat_template_kwargs`: each inference stack now explicitly pins its effective request profile,
   persists the complete extra body and SHA-256, and fails closed on artifact mismatch.
 
-### Evidence status
+### Evidence status at release
 
 - No M3 model results are reported yet. The frozen M2 Qwen3.5-9B result remains 35/40 exact
   outcomes with zero infrastructure failures and zero unsafe-action attempts.

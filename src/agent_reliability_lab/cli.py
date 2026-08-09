@@ -56,7 +56,7 @@ DEFAULT_SUITE = Path("benchmarks/smoke_suite.json")
 DEFAULT_PROMPTS = Path("benchmarks/model_prompts_v1.json")
 DEFAULT_DEPLOYMENT_COMPOSE = Path("deploy/compose.gpu.yml")
 DEFAULT_STUDY_PROTOCOL = Path("studies/m3_protocol.json")
-DEFAULT_STUDY_CELLS = Path("runs/m3-controlled-contract-study-v1/cells")
+DEFAULT_STUDY_CELLS = Path("runs/m3-controlled-contract-study-v1r1/cells")
 agent_app = typer.Typer(help="Run real model-driven evaluations against the simulator.")
 study_app = typer.Typer(help="Validate, plan, and aggregate a preregistered model study.")
 app.add_typer(agent_app, name="agent")
@@ -635,6 +635,17 @@ def agent_run(
             help="Override the versioned system reporting contract declared by the prompt set.",
         ),
     ] = None,
+    study_id: Annotated[
+        str | None,
+        typer.Option("--study-id", help="Preregistered study identity recorded in the manifest."),
+    ] = None,
+    study_protocol_sha256: Annotated[
+        str | None,
+        typer.Option(
+            "--study-protocol-sha256",
+            help="Canonical preregistered protocol hash recorded in the manifest.",
+        ),
+    ] = None,
     chat_template_mode: Annotated[
         ChatTemplateMode,
         typer.Option(
@@ -674,6 +685,15 @@ def agent_run(
         normalized_model = model.strip()
         if not normalized_model:
             raise ValueError("model must not be empty")
+        if (study_id is None) != (study_protocol_sha256 is None):
+            raise ValueError("study-id and study-protocol-sha256 must be supplied together")
+        if study_id is not None and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", study_id) is None:
+            raise ValueError("study-id must be a lowercase hyphenated slug")
+        if (
+            study_protocol_sha256 is not None
+            and re.fullmatch(r"[0-9a-f]{64}", study_protocol_sha256) is None
+        ):
+            raise ValueError("study-protocol-sha256 must be a lowercase SHA-256")
         suite = load_suite(suite_path)
         validate_suite_contract(suite)
         prompt_set = load_prompt_set(prompt_set_path)
@@ -733,6 +753,8 @@ def agent_run(
             manifest: dict[str, JsonValue] = {
                 "schema_version": "1.0",
                 "run_id": resolved_run_id,
+                "study_id": study_id,
+                "study_protocol_sha256": study_protocol_sha256,
                 "suite_id": suite.suite_id,
                 "suite_sha256": _file_digest(suite_path),
                 "prompt_set_id": prompt_set.prompt_set_id,

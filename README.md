@@ -43,15 +43,15 @@ reference trajectories are not model results.
 > 5/5; `S06_APPROVED_ROLLBACK` passed 0/5, so the conjunctive promotion gate remains **false**.
 > See the [full result and failure analysis](reports/qwen35-9b-policy-aware-r5.md).
 
-## Milestone 3 preregistration
+## Milestone 3 repaired-study preregistration
 
-M3 is now preregistered, but **no M3 model results exist yet**. The frozen design compares prompt
-contract v1 with a two-rule reporting clarification (v2) on an entity-disjoint, confirmatory
-eight-task prospective panel,
-using five paired stochastic seeds on two pinned open-weight inference stacks. The 160 stochastic
-task outcomes are scored; 32 temperature-zero anchors are descriptive only. Prospective task
-handles are opaque, model canaries use only the existing development suite, and the panel's first
-model exposure is scored. See the [controlled-study preregistration](docs/M3_STUDY.md).
+M3 repaired study `v1r1` is frozen and pending. Original v1 stopped after a generic harness
+serialization defect: one complete 3/8 cell is excluded, one cell is partial, and 22 cells were
+never run, so there is no aggregate or promotion conclusion. The repaired run is transparently a
+confirmatory rerun, not a pristine first-pass prospective study. Its holdout, prompt contracts,
+evaluator, gates, sampling, models, and request bodies are unchanged; only JSON-safe serialization
+of rejected tool arguments was repaired. See the [repaired-study preregistration](docs/M3_STUDY.md)
+and [sanitized abort record](reports/m3-controlled-contract-study-v1-abort.md).
 
 ## Frozen local-model result
 
@@ -224,7 +224,7 @@ reports/            sanitized tracked results; raw transcripts remain local
 
 - **M1 — deterministic core:** complete.
 - **M2 — local model boundary and runner:** complete; frozen local GPU evidence reported.
-- **M3 — controlled study:** preregistered; prospective inference and results are pending.
+- **M3 — controlled study:** repaired confirmatory rerun frozen; eligible aggregate results pending.
 - **M4 — production surface:** service API, observability, dashboards, and demo.
 
 ## Scope and limitations

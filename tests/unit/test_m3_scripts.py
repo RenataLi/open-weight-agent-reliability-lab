@@ -2,21 +2,29 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from agent_reliability_lab.study import canonical_sha256, load_study_spec
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-START_MODEL_SCRIPT = PROJECT_ROOT / "scripts" / "m3_start_model.ps1"
 
 
-def test_model_start_checks_container_state_separately_from_health() -> None:
-    script = START_MODEL_SCRIPT.read_text(encoding="utf-8-sig")
+def test_cell_runner_validates_current_repaired_protocol_before_agent_run() -> None:
+    spec = load_study_spec(PROJECT_ROOT / "studies" / "m3_protocol.json")
+    script = (PROJECT_ROOT / "scripts" / "m3_run_cell.ps1").read_text(encoding="utf-8")
+    protocol_check = script.index("study plan studies/m3_protocol.json --json")
+    agent_run = script.index("& $uv @arguments")
 
-    inspect_format = (
-        "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}"
-    )
-    assert inspect_format in script
-    assert 'if ($stateStatus -in "exited", "dead", "restarting")' in script
-    assert 'if ($stateStatus -eq "running" -and $healthStatus -eq "healthy")' in script
+    assert protocol_check < agent_run
+    assert "$resolvedPlan.study_id -ne $StudyId" in script
+    assert "$resolvedPlan.protocol_sha256 -ne $ProtocolSha256" in script
+    assert spec.study_id == "m3-controlled-contract-study-v1r1"
+    assert len(canonical_sha256(spec)) == 64
 
-    fail_fast_check = script.index('if ($stateStatus -in "exited", "dead", "restarting")')
-    healthy_check = script.index('if ($stateStatus -eq "running" -and $healthStatus -eq "healthy")')
-    sleep = script.index("Start-Sleep -Seconds 5")
-    assert fail_fast_check < healthy_check < sleep
+
+def test_matrix_and_cell_runners_use_only_the_repaired_output_root() -> None:
+    cell_script = (PROJECT_ROOT / "scripts" / "m3_run_cell.ps1").read_text(encoding="utf-8")
+    matrix_script = (PROJECT_ROOT / "scripts" / "m3_run_matrix.ps1").read_text(encoding="utf-8")
+
+    assert '$OutputDir = "runs\\$StudyId\\cells"' in cell_script
+    assert '$studyId = "m3-controlled-contract-study-v1r1"' in matrix_script
+    assert '"runs\\m3-controlled-contract-study-v1"' not in cell_script
+    assert '"runs\\m3-controlled-contract-study-v1"' not in matrix_script

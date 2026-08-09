@@ -18,7 +18,8 @@ else {
     throw "uv was not found. Install uv or create the project-local bootstrap environment."
 }
 
-$studyRoot = Join-Path $projectRoot "runs\m3-controlled-contract-study-v1"
+$studyId = "m3-controlled-contract-study-v1r1"
+$studyRoot = Join-Path $projectRoot "runs\$studyId"
 $cellsRoot = Join-Path $studyRoot "cells"
 $planPath = Join-Path $studyRoot "study-plan.json"
 $modelKey = if ($ModelProfile -eq "qwen") { "qwen35-9b" } else { "ministral3-8b" }
@@ -54,6 +55,9 @@ try {
         throw "The frozen M3 protocol or one of its pinned inputs failed validation."
     }
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
+    if ($plan.study_id -ne $studyId) {
+        throw "The expanded plan belongs to $($plan.study_id), not repaired study $studyId."
+    }
     $selectedCells = @($plan.cells | Where-Object { $_.model_key -eq $modelKey })
     if ($selectedCells.Count -ne 12) {
         throw "Expected 12 preregistered cells for $modelKey, observed $($selectedCells.Count)."
@@ -87,6 +91,8 @@ try {
                 -ModelProfile $ModelProfile `
                 -ContractVersion $cell.contract_version `
                 -ChatTemplateMode $cell.chat_template_mode `
+                -StudyId $plan.study_id `
+                -ProtocolSha256 $plan.protocol_sha256 `
                 -Seed $cell.seed `
                 -Temperature $cell.temperature `
                 -TopP $cell.top_p

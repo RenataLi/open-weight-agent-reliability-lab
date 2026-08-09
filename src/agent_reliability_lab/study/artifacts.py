@@ -67,6 +67,8 @@ def _validate_manifest(
 ) -> None:
     expected: dict[str, object] = {
         "run_id": cell.cell_id,
+        "study_id": spec.study_id,
+        "study_protocol_sha256": canonical_sha256(spec),
         "suite_id": spec.dataset.suite_id,
         "suite_sha256": spec.dataset.suite_sha256,
         "prompt_set_id": spec.dataset.prompt_set_id,

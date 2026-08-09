@@ -28,6 +28,8 @@ def _manifest(spec: object, cell: object) -> dict[str, object]:
     arguments = dict(model.expected_vllm_arguments)
     return {
         "run_id": typed_cell.cell_id,
+        "study_id": typed_spec.study_id,
+        "study_protocol_sha256": canonical_sha256(typed_spec),
         "suite_id": typed_spec.dataset.suite_id,
         "suite_sha256": typed_spec.dataset.suite_sha256,
         "prompt_set_id": typed_spec.dataset.prompt_set_id,
@@ -99,6 +101,8 @@ def test_artifact_loader_rejects_tampered_manifest_before_analysis(tmp_path: Pat
 @pytest.mark.parametrize(
     ("field", "tampered"),
     [
+        ("study_id", "m3-controlled-contract-study-v1"),
+        ("study_protocol_sha256", "0" * 64),
         ("provider_base_url", "http://localhost:8000/v1"),
         ("max_turns", 13),
         ("provider_attempts", 2),

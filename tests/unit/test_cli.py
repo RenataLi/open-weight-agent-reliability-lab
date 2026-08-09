@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 from agent_reliability_lab.agent.models import AgentSuiteResult
 from agent_reliability_lab.cli import (
+    DEFAULT_STUDY_CELLS,
     _docker_model_provenance,
     _safe_container_environment,
     _safe_vllm_arguments,
@@ -147,7 +148,8 @@ def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path)
     assert validated.exit_code == 0
     assert "24 cells" in validated.stdout
     assert "160 scored + 32 descriptive" in validated.stdout
-    assert "0c27f20f43e0c7a4d280b18d43b81a43a2bf44b4b16290badb92031e095396bc" in (validated.stdout)
+    assert "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a" in (validated.stdout)
+    assert Path("runs/m3-controlled-contract-study-v1r1/cells") == DEFAULT_STUDY_CELLS
 
     output = tmp_path / "study-plan.json"
     planned = runner.invoke(
@@ -156,6 +158,7 @@ def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path)
     )
     assert planned.exit_code == 0
     payload = json.loads(planned.stdout)
+    assert payload["study_id"] == "m3-controlled-contract-study-v1r1"
     assert payload["total_task_runs"] == 192
     assert len(payload["cells"]) == 24
     assert json.loads(output.read_text(encoding="utf-8")) == payload
@@ -406,6 +409,22 @@ def test_agent_run_rejects_blank_model_without_artifacts(tmp_path: Path) -> None
     assert not output_dir.exists()
 
 
+def test_agent_run_requires_paired_study_provenance(tmp_path: Path) -> None:
+    output_dir = tmp_path / "runs"
+    result = runner.invoke(
+        app,
+        [
+            *_agent_args(output_dir),
+            "--study-id",
+            "m3-controlled-contract-study-v1r1",
+        ],
+    )
+
+    assert result.exit_code == 2
+    assert "study-id and study-protocol-sha256 must be supplied together" in result.stderr
+    assert not output_dir.exists()
+
+
 def test_agent_run_rejects_compose_outside_project_before_network(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -541,6 +560,8 @@ def test_agent_run_filters_canary_and_persists_preflight_provenance(
     assert manifest["provider_attempts"] == 2
     assert manifest["provider_backoff_seconds"] == 0.25
     assert manifest["contract_version"] == "v1"
+    assert manifest["study_id"] is None
+    assert manifest["study_protocol_sha256"] is None
     assert manifest["chat_template_mode"] == "disable_thinking"
     assert manifest["request_extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert manifest["request_extra_body_sha256"] == (
@@ -587,6 +608,10 @@ def test_agent_run_contract_override_is_persisted(
             "test-model",
             "--contract-version",
             "v2",
+            "--study-id",
+            "m3-controlled-contract-study-v1r1",
+            "--study-protocol-sha256",
+            "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a",
             "--chat-template-mode",
             "native",
             "--run-id",
@@ -598,6 +623,10 @@ def test_agent_run_contract_override_is_persisted(
     manifest = json.loads((output_dir / "contract-v2" / "manifest.json").read_text("utf-8"))
     result_payload = json.loads((output_dir / "contract-v2" / "result.json").read_text("utf-8"))
     assert manifest["contract_version"] == "v2"
+    assert manifest["study_id"] == "m3-controlled-contract-study-v1r1"
+    assert manifest["study_protocol_sha256"] == (
+        "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a"
+    )
     assert manifest["chat_template_mode"] == "native"
     assert "chat_template_kwargs" not in manifest["request_extra_body"]
     assert manifest["request_extra_body_sha256"] == (

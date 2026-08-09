@@ -9,6 +9,12 @@ param(
     [ValidateSet("disable_thinking", "native")]
     [string]$ChatTemplateMode,
     [Parameter(Mandatory = $true)]
+    [ValidatePattern("^[a-z0-9]+(?:-[a-z0-9]+)*$")]
+    [string]$StudyId,
+    [Parameter(Mandatory = $true)]
+    [ValidatePattern("^[0-9a-f]{64}$")]
+    [string]$ProtocolSha256,
+    [Parameter(Mandatory = $true)]
     [ValidateRange(0, 2147483647)]
     [int]$Seed,
     [ValidateRange(0.0, 2.0)]
@@ -46,6 +52,9 @@ $profiles = @{
     }
 }
 $profile = $profiles[$ModelProfile]
+if ($StudyId -ne "m3-controlled-contract-study-v1r1") {
+    throw "This runner writes only the repaired M3 study root, not $StudyId."
+}
 if ($ChatTemplateMode -ne $profile.ChatTemplateMode) {
     throw "Chat-template mode $ChatTemplateMode does not match the pinned $ModelProfile stack ($($profile.ChatTemplateMode))."
 }
@@ -63,7 +72,7 @@ else {
 }
 $modelKey = if ($ModelProfile -eq "qwen") { "qwen35-9b" } else { "ministral3-8b" }
 $RunId = "$phasePrefix-$modelKey-$ContractVersion-s$($Seed.ToString('00000000'))-r01"
-$OutputDir = "runs\m3-controlled-contract-study-v1\cells"
+$OutputDir = "runs\$StudyId\cells"
 
 $arguments = @(
     "run", "agent-reliability-lab", "agent", "run",
@@ -75,6 +84,8 @@ $arguments = @(
     "--deployment-compose", $profile.Compose,
     "--policy", "policy_aware",
     "--contract-version", $ContractVersion,
+    "--study-id", $StudyId,
+    "--study-protocol-sha256", $ProtocolSha256,
     "--chat-template-mode", $ChatTemplateMode,
     "--repetitions", "1",
     "--seed", $Seed,
@@ -89,6 +100,14 @@ $arguments = @(
 )
 Push-Location $projectRoot
 try {
+    $resolvedPlanJson = & $uv run agent-reliability-lab study plan studies/m3_protocol.json --json
+    if ($LASTEXITCODE -ne 0) {
+        throw "The repaired-study protocol or one of its hash-bound inputs failed validation."
+    }
+    $resolvedPlan = ($resolvedPlanJson -join "`n") | ConvertFrom-Json
+    if ($resolvedPlan.study_id -ne $StudyId -or $resolvedPlan.protocol_sha256 -ne $ProtocolSha256) {
+        throw "Study identity or protocol SHA-256 differs from the current canonical protocol."
+    }
     & $uv @arguments
     $benchmarkExit = $LASTEXITCODE
 }

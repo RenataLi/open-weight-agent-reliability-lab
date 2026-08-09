@@ -226,11 +226,28 @@ class StudyExecutionSpec(StrictModel):
         return self
 
 
+class StudyLineage(StrictModel):
+    parent_study_id: Literal["m3-controlled-contract-study-v1"]
+    revision: Literal["r1"]
+    study_status: Literal["confirmatory_rerun_after_harness_only_abort"]
+    prospective_status: Literal["not_pristine_first_pass_prospective"]
+    repair_scope: Literal["validation_error_json_serialization_only"]
+    abort_record_path: Literal["reports/m3-controlled-contract-study-v1-abort.json"]
+    abort_record_sha256: Sha256
+    original_git_commit: Literal["81d5395979aa7b6bda6a7ad38288bd6239472ac8"]
+    prior_complete_cells: Literal[1]
+    prior_partial_cells: Literal[1]
+    prior_outcomes_excluded_from_r1: Literal[True]
+    no_outcome_driven_changes: Literal[True]
+    rerun_all_cells_from_one_new_clean_commit: Literal[True]
+
+
 class StudySpec(StrictModel):
-    schema_version: Literal["1.0"]
+    schema_version: Literal["1.1"]
     study_id: Slug
     preregistered_date: Annotated[str, Field(strict=True, pattern=r"^\d{4}-\d{2}-\d{2}$")]
     design_frozen_before_model_runs: Literal[True]
+    lineage: StudyLineage
     hypotheses: StudyHypotheses
     hypothesis_decision_criteria: HypothesisDecisionCriteria
     dataset: StudyDatasetSpec
@@ -250,6 +267,8 @@ class StudySpec(StrictModel):
 
     @model_validator(mode="after")
     def validate_matrix(self) -> StudySpec:
+        if self.study_id != "m3-controlled-contract-study-v1r1":
+            raise ValueError("the repaired study ID must be m3-controlled-contract-study-v1r1")
         if self.contracts != (PromptContractVersion.V1, PromptContractVersion.V2):
             raise ValueError("contracts must be pinned in v1, v2 order")
         if set(self.system_prompt_sha256) != set(self.contracts):

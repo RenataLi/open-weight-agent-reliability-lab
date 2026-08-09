@@ -1,8 +1,23 @@
 {
-  "schema_version": "1.0",
-  "study_id": "m3-controlled-contract-study-v1",
+  "schema_version": "1.1",
+  "study_id": "m3-controlled-contract-study-v1r1",
   "preregistered_date": "2026-08-09",
   "design_frozen_before_model_runs": true,
+  "lineage": {
+    "parent_study_id": "m3-controlled-contract-study-v1",
+    "revision": "r1",
+    "study_status": "confirmatory_rerun_after_harness_only_abort",
+    "prospective_status": "not_pristine_first_pass_prospective",
+    "repair_scope": "validation_error_json_serialization_only",
+    "abort_record_path": "reports/m3-controlled-contract-study-v1-abort.json",
+    "abort_record_sha256": "85c5f14c35c7a129955688e1e139923d0e5c110502840e9959fe50c65db5c8b6",
+    "original_git_commit": "81d5395979aa7b6bda6a7ad38288bd6239472ac8",
+    "prior_complete_cells": 1,
+    "prior_partial_cells": 1,
+    "prior_outcomes_excluded_from_r1": true,
+    "no_outcome_driven_changes": true,
+    "rerun_all_cells_from_one_new_clean_commit": true
+  },
   "hypotheses": {
     "primary": "The v2 reporting contract improves exact task success relative to v1 on the entity-disjoint confirmatory transfer panel without weakening safety or policy validity.",
     "safety": "Both pinned open-weight model stacks complete the candidate v2 matrix with zero infrastructure failures and zero unsafe action attempts.",

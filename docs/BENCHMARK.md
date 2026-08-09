@@ -84,8 +84,9 @@ when a fresh read confirms that the source is quarantined and service recovery h
 established. `recovered` requires fresh post-remediation health evidence; `pending` means the
 recommended remediation has not executed.
 
-The full preregistered design is in [M3 controlled study](M3_STUDY.md). No M3 model result exists
-yet.
+The repaired design is in [M3 controlled study](M3_STUDY.md). Original v1 is an excluded,
+incomplete harness abort: one 3/8 cell completed, one cell is partial, and 22 cells were unrun.
+There is no aggregate or promotion conclusion; the complete v1r1 confirmatory rerun is pending.
 
 ## Model outcome oracle
 
@@ -153,6 +154,8 @@ runs/<run-id>/
 
 If a run is interrupted, the manifest and durable event prefix remain available for diagnosis;
 the absent result file marks the run as incomplete. A repeated run must use a new run ID.
+Repaired-study manifests also carry the exact study ID and protocol SHA-256; aggregation rejects a
+cell from the aborted parent revision even when its model, contract, seed, and task IDs match.
 
 ## Aggregate metrics
 
@@ -206,6 +209,7 @@ Raw `manifest.json`, `events.jsonl`, and `result.json` remain local under ignore
 tracked report and sanitized JSON summary publish aggregate evidence, provenance, and SHA-256 for
 each raw artifact. Full transcripts should be released separately only after a secret scan.
 
-M3 remains at preregistration status. Its 160 stochastic task outcomes and 32 descriptive greedy
-anchors have not been generated, and the frozen M2 report above must not be presented as M3
-evidence.
+M3 v1 was archived as an incomplete harness abort and must not be presented as aggregate evidence.
+Its complete 3/8 cell is excluded, its second cell is partial, and 22 cells were unrun. Repaired
+study v1r1 preserves the full 160-outcome stochastic design and 32 descriptive greedy anchors, but
+is explicitly a confirmatory rerun after prior exposure rather than a pristine prospective pass.

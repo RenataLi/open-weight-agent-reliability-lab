@@ -1,14 +1,18 @@
-# M3 controlled study preregistration
+# M3 controlled study - repaired-study preregistration
 
-> **Status: design frozen; no M3 model results are reported in this document.** The prospective
-> panel, prompt contracts, model identities, sampling matrix, and promotion gates are fixed before
-> scored inference begins. Engineering canaries are labeled as pilots and cannot enter the score.
+> **Status: `m3-controlled-contract-study-v1r1` is frozen and awaiting execution.** It is a
+> confirmatory rerun after a harness-only abort, not a pristine first-pass prospective study. The
+> original v1 attempt produced one complete 3/8 cell that is excluded, one partial cell, and 22
+> unrun cells; it supports no aggregate or promotion conclusion.
 
 The machine-readable source of truth is `studies/m3_protocol.json`. It binds the prospective suite
 to byte SHA-256 `3659bb8bfcae05ae7215cb4bc8bae8e6b1b225a9ed0f17c85185ce6c4de19a99`
 and the prompt set to
 `4e11bedb86ca59aadccc3b36fb1487e681edbe74c774ad8f014ef1655c8d1699`; validation fails closed if
 either file changes. The expanded study plan records a canonical hash of the complete protocol.
+The protocol also hash-binds the sanitized
+[v1 abort record](../reports/m3-controlled-contract-study-v1-abort.md), which preserves the exact
+artifact digests, original commit, repair scope, and exclusion decision.
 
 ## Question and hypotheses
 
@@ -41,16 +45,17 @@ requires zero infrastructure failures and zero unsafe attempts in each v2 arm. A
 can therefore pass the practical promotion floor while the improvement hypotheses remain
 unsupported.
 
-## Frozen prospective panel
+## Frozen confirmatory transfer panel
 
 The scored dataset is `benchmarks/m3_holdout_suite.json` plus
 `benchmarks/m3_holdout_prompts.json`. It contains eight newly authored tasks across three
 simulated worlds. Their service, deployment, data-source, incident, and approval identifiers are
 disjoint from the M2 development suite.
 
-The panel is prospective and entity-disjoint, but intentionally confirmatory: it transfers the
-development capabilities to new resources and includes two fault variations rather than claiming
-broad coverage of unseen incident classes.
+The panel was prospective and entity-disjoint at the original v1 exposure, but intentionally
+confirmatory: it transfers the development capabilities to new resources and includes two fault
+variations rather than claiming broad coverage of unseen incident classes. Because r1 follows an
+aborted exposure, its complete rerun is confirmatory but no longer a pristine first pass.
 
 | Task | Capability |
 | --- | --- |
@@ -190,17 +195,25 @@ server health, exact tool-call round trips, post-write recovery, and lost-respon
 Canary outcomes never become evidence and cannot be used to tune prompts, tasks, budgets, gates,
 or the evaluator.
 
-The prospective panel is not used for canaries: its first model exposure is a scored cell. Once
-that exposure begins, observed M3 outcomes cannot justify a prompt, harness, task, budget, gate,
-or evaluator change, and scored outcomes are not rerun. A discovered defect or incomplete matrix
-must be reported and causes the corresponding preregistered completeness gate to fail; a repaired
-implementation belongs to a separately versioned future study.
+The panel was not used for canaries: its first model exposure occurred in original study v1. That
+matrix stopped after the first complete cell and during the second because generic serialization
+of a Pydantic validator diagnostic raised `TypeError: Object of type ValueError is not JSON
+serializable`. The completed 3/8 result and partial event prefix remain excluded evidence; 22 cells
+were never run, so v1 has no aggregate or promotion verdict.
+
+The only post-exposure implementation change replaces nested standard-library serialization of
+`ValidationError.errors()` with Pydantic's JSON-safe `ValidationError.json()` path. No prompt,
+holdout, evaluator, gate, sampling, model-stack, or request-body setting changed, and the repair
+was not chosen from observed outcomes. Repaired study v1r1 reruns all 24 cells from one new clean
+commit under `runs/m3-controlled-contract-study-v1r1` and never mixes original artifacts into its
+analysis.
 
 Scored cells run from the frozen specification into exclusive local artifact directories. A
 completed cell is immutable and resumability means scheduling only cells with no completed result,
 not overwriting or appending repetitions to an existing cell. The runner records contract, model
 and revision, seed, sampling, input hashes, deployment provenance, explicit chat-template mode,
-effective request-body hash, events, and exact per-task checks.
+effective request-body hash, study ID, canonical protocol hash, events, and exact per-task checks.
+Artifact validation rejects cells from the parent study or any other protocol revision.
 
 Scoring and gates are computed from the strictly validated `result.json`. The append-only
 `events.jsonl` stream is checked for JSON-object records and bound into the artifact-set hash for
@@ -214,5 +227,6 @@ transcripts, so they stay under ignored run directories. A future tracked report
 sanitized aggregates, preregistered gate decisions, failure categories, provenance, and SHA-256
 bindings to the raw artifacts. Full transcripts require a separate secret and privacy review.
 
-This document preregisters the design only. It must not be edited later to imply that M3 results
-already exist; observed results belong in a separate generated report.
+This document freezes the repaired design and discloses the excluded abort only. Eligible v1r1
+outcomes belong in a separate generated report; until all required artifacts exist, no aggregate
+or promotion conclusion may be reported.

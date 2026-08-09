@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "record_id": "m3-controlled-contract-study-v1-harness-abort",
+  "status": "aborted_incomplete",
+  "matrix_accounting": {
+    "planned_cells": 24,
+    "complete_cells": 1,
+    "partial_cells": 1,
+    "unrun_cells": 22,
+    "eligible_cells": 0,
+    "aggregate_conclusion_permitted": false,
+    "promotion_conclusion_permitted": false
+  },
+  "original_study": {
+    "study_id": "m3-controlled-contract-study-v1",
+    "protocol_sha256": "0c27f20f43e0c7a4d280b18d43b81a43a2bf44b4b16290badb92031e095396bc",
+    "git_commit": "81d5395979aa7b6bda6a7ad38288bd6239472ac8",
+    "archive_root": "runs/m3-controlled-contract-study-v1-aborted-81d5395-20260809T044101",
+    "study_plan": {
+      "path": "runs/m3-controlled-contract-study-v1-aborted-81d5395-20260809T044101/study-plan.json",
+      "bytes": 20657,
+      "sha256": "ec1f9779f972ecff5f540e88405117606d7cf4c7e1fda4d4ade9ff71492848c0"
+    }
+  },
+  "first_complete_cell": {
+    "cell_id": "m3s-qwen35-9b-v1-s00000011-r01",
+    "passed_runs": 3,
+    "total_runs": 8,
+    "infrastructure_failures": 0,
+    "unsafe_action_attempts": 0,
+    "excluded_from_repaired_study": true,
+    "artifacts": {
+      "manifest.json": {
+        "bytes": 3484,
+        "sha256": "20d828d7d402694d142d4071f6c6f0b71fd8dd4fd290cfb9a1e026af08f0165a"
+      },
+      "events.jsonl": {
+        "bytes": 18361,
+        "sha256": "48ce0da75ceccb394c328ef5bb7d386e9db99cd1dda921e1c3ca71a74132dfed"
+      },
+      "result.json": {
+        "bytes": 133835,
+        "sha256": "f9114bb65d937b89a05a744ad2fa3710262d0b12ce32464d514d0619ac12a2e4"
+      }
+    }
+  },
+  "partial_second_cell": {
+    "cell_id": "m3s-qwen35-9b-v2-s00000011-r01",
+    "result_present": false,
+    "excluded_from_repaired_study": true,
+    "artifacts": {
+      "manifest.json": {
+        "bytes": 3484,
+        "sha256": "705296b7b306318eb180b29b565cc138ed672f358c6555f69ea34aaad7ee44c4"
+      },
+      "events.jsonl": {
+        "bytes": 7856,
+        "sha256": "219ccb458d25ba2afe0c6cb69fa9c49d164eebeb96ba618cdf63366297e827d3"
+      }
+    }
+  },
+  "abort": {
+    "exception_type": "TypeError",
+    "message": "Object of type ValueError is not JSON serializable",
+    "signature": "TypeError: Object of type ValueError is not JSON serializable",
+    "failing_operation": "json.loads(json.dumps(exc.errors(include_url=False)))",
+    "failure_boundary": "generic simulator ValidationError diagnostic serialization"
+  },
+  "repair": {
+    "scope": "validation_error_json_serialization_only",
+    "replacement_operation": "json.loads(exc.json(include_url=False))",
+    "no_prompt_changes": true,
+    "no_holdout_changes": true,
+    "no_evaluator_changes": true,
+    "no_gate_changes": true,
+    "no_sampling_changes": true,
+    "no_model_stack_changes": true,
+    "no_request_body_changes": true,
+    "no_outcome_driven_changes": true
+  },
+  "unchanged_control_hashes": {
+    "holdout_suite_sha256": "3659bb8bfcae05ae7215cb4bc8bae8e6b1b225a9ed0f17c85185ce6c4de19a99",
+    "holdout_prompts_sha256": "4e11bedb86ca59aadccc3b36fb1487e681edbe74c774ad8f014ef1655c8d1699",
+    "system_prompt_v1_sha256": "4843d9ffe75650553e19b9117558685a38436f043a1c089bd8add8e5300e716e",
+    "system_prompt_v2_sha256": "41a66b4c5553750e732b48113bceb2ab9c2c36bb543ffa794c65c96a797bc75a",
+    "tool_schemas_sha256": "677361c69086e34be1edb080bcb7f22581e67f4898a57cef6ab8a0a11ca6f9f4",
+    "qwen_request_extra_body_sha256": "a708e0e8efb2d85fcfb6e63358670bd57378384f1fcb315391b2630de3d49e45",
+    "ministral_request_extra_body_sha256": "446637575e9a6dd899e6f42f507eb9c03ae16d3428fcfed938eda191d7ddc3c5"
+  },
+  "repaired_study_policy": {
+    "study_id": "m3-controlled-contract-study-v1r1",
+    "description": "confirmatory rerun after harness-only abort; not a pristine first-pass prospective study",
+    "rerun_all_24_cells": true,
+    "one_new_clean_git_commit": true,
+    "separate_output_root": "runs/m3-controlled-contract-study-v1r1",
+    "mix_original_and_repaired_cells": false
+  }
+}
