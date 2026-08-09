@@ -112,6 +112,10 @@ def verify_study_inputs(spec: StudySpec, project_root: Path) -> None:
             model.expected_vllm_arguments_sha256
         ):
             raise ValueError(f"safe vLLM argument hash changed for {model.model_key}")
+        if canonical_sha256(model.expected_request_extra_body) != (
+            model.expected_request_extra_body_sha256
+        ):
+            raise ValueError(f"request extra-body hash changed for {model.model_key}")
         if canonical_sha256(model.expected_container_environment) != (
             model.expected_container_environment_sha256
         ):
@@ -153,6 +157,7 @@ def build_study_plan(spec: StudySpec) -> StudyPlan:
                         model_id=model.model_id,
                         served_model_name=model.served_model_name,
                         model_revision=model.revision,
+                        chat_template_mode=model.chat_template_mode,
                         contract_version=contract,
                         seed=seed,
                         temperature=spec.stochastic.temperature,
@@ -178,6 +183,7 @@ def build_study_plan(spec: StudySpec) -> StudyPlan:
                         model_id=model.model_id,
                         served_model_name=model.served_model_name,
                         model_revision=model.revision,
+                        chat_template_mode=model.chat_template_mode,
                         contract_version=contract,
                         seed=spec.greedy_anchor.seed,
                         temperature=spec.greedy_anchor.temperature,

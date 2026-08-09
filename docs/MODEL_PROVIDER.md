@@ -31,17 +31,21 @@ Every request contains:
 - temperature and optional seed;
 - run-level `top_p`, `max_tokens`, and tool-choice settings.
 
-The agent runner additionally requests:
+Every stack requests the following non-provider-owned fields:
 
 ```json
 {
   "parallel_tool_calls": false,
-  "tool_choice": "auto",
-  "chat_template_kwargs": {
-    "enable_thinking": false
-  }
+  "tool_choice": "auto"
 }
 ```
+
+The chat-template portion is an explicit CLI/configuration choice rather than a model-name
+heuristic. `--chat-template-mode disable_thinking` additionally sends
+`{"chat_template_kwargs":{"enable_thinking":false}}`; `--chat-template-mode native` omits
+`chat_template_kwargs` entirely. The Qwen stack pins the first profile. Native Mistral tokenizers
+reject the Qwen-specific keyword, so the Ministral stack pins the second profile. The manifest
+stores the selected mode, the complete effective extra body, and its canonical SHA-256.
 
 The provider reserves the fields it owns, so caller-supplied extra parameters cannot replace
 `model`, `messages`, `tools`, `seed`, or `temperature`.

@@ -29,11 +29,13 @@ $profiles = @{
         Model = "qwen3.5-9b"
         Revision = "cc5442c03a5c0bff0bd4c6888d9a40029c637733"
         Compose = "deploy/compose.gpu.yml"
+        ChatTemplateMode = "disable_thinking"
     }
     ministral = @{
         Model = "ministral3-8b"
         Revision = "f6fae9795746f63c9be8344932f01275f3c63734"
         Compose = "deploy/compose.ministral3-8b.yml"
+        ChatTemplateMode = "native"
     }
 }
 $profile = $profiles[$ModelProfile]
@@ -50,6 +52,7 @@ $arguments = @(
     "--deployment-compose", $profile.Compose,
     "--policy", "policy_aware",
     "--contract-version", $ContractVersion,
+    "--chat-template-mode", $profile.ChatTemplateMode,
     "--repetitions", "1",
     "--seed", "42",
     "--temperature", "0",

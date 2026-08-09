@@ -173,8 +173,9 @@ runs/<run-id>/
 
 The manifest records the observed model identity, hashes of the benchmark, prompt set, system
 prompt, tool schemas, lockfile, the safe provider URL, local Git state, model revision, policy,
-sampling parameters, and whether an API key was present. It never stores the API-key value. Run
-IDs are exclusive: an existing directory is not overwritten.
+sampling parameters, explicit chat-template mode, effective request extra body and hash, and
+whether an API key was present. It never stores the API-key value. Run IDs are exclusive: an
+existing directory is not overwritten.
 
 Exact study scores are computed from the typed `result.json`; `events.jsonl` is a flushed,
 hash-bound diagnostic stream rather than a separately reconstructed scoring ledger.

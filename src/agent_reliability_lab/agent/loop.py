@@ -20,6 +20,7 @@ from agent_reliability_lab.agent.models import (
     ModelTurnRecord,
     PromptContractVersion,
     TerminationReason,
+    build_request_extra_body,
 )
 from agent_reliability_lab.agent.prompting import system_prompt
 from agent_reliability_lab.domain.events import ToolStatus
@@ -136,13 +137,7 @@ class AgentRunner:
                 completion = self._provider.complete(
                     messages,
                     tools=tools,
-                    extra_body={
-                        "max_tokens": self._config.max_tokens,
-                        "top_p": self._config.top_p,
-                        "parallel_tool_calls": False,
-                        "tool_choice": "auto",
-                        "chat_template_kwargs": {"enable_thinking": False},
-                    },
+                    extra_body=build_request_extra_body(self._config),
                 )
             except ProviderError as exc:
                 termination = TerminationReason.PROVIDER_ERROR

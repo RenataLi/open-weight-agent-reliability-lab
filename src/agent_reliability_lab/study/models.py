@@ -7,7 +7,14 @@ from typing import Annotated, Literal
 
 from pydantic import Field, JsonValue, model_validator
 
-from agent_reliability_lab.agent.models import AgentPolicy, AgentSuiteResult, PromptContractVersion
+from agent_reliability_lab.agent.models import (
+    AgentPolicy,
+    AgentRunConfig,
+    AgentSuiteResult,
+    ChatTemplateMode,
+    PromptContractVersion,
+    build_request_extra_body,
+)
 from agent_reliability_lab.domain.base import StrictModel
 
 Sha256 = Annotated[str, Field(strict=True, pattern=r"^[0-9a-f]{64}$")]
@@ -48,6 +55,9 @@ class StudyModelSpec(StrictModel):
         ),
     ]
     tool_call_parser: str
+    chat_template_mode: ChatTemplateMode
+    expected_request_extra_body: dict[str, JsonValue]
+    expected_request_extra_body_sha256: Sha256
     expected_container_command_sha256: Sha256
     expected_container_environment: dict[str, str]
     expected_container_environment_sha256: Sha256
@@ -60,6 +70,12 @@ class StudyModelSpec(StrictModel):
             raise ValueError("model_id must not be empty")
         if not self.tool_call_parser.strip():
             raise ValueError("tool_call_parser must not be empty")
+        chat_template_kwargs = self.expected_request_extra_body.get("chat_template_kwargs")
+        if self.chat_template_mode is ChatTemplateMode.NATIVE:
+            if chat_template_kwargs is not None:
+                raise ValueError("native chat-template mode must omit chat_template_kwargs")
+        elif chat_template_kwargs != {"enable_thinking": False}:
+            raise ValueError("disable_thinking mode must pin enable_thinking=false")
         allowed_environment = {"VLLM_USE_V2_MODEL_RUNNER": {"0", "1"}}
         for name, environment_value in self.expected_container_environment.items():
             if (
@@ -252,6 +268,18 @@ class StudySpec(StrictModel):
         )
         if stochastic_runs != self.gates.required_stochastic_task_runs:
             raise ValueError("the preregistered stochastic matrix must contain 160 task runs")
+        for model in self.models:
+            request_config = AgentRunConfig(
+                policy=self.policy,
+                seed=self.stochastic.seeds[0],
+                temperature=self.stochastic.temperature,
+                top_p=self.stochastic.top_p,
+                max_tokens=self.execution.max_tokens,
+                max_turns=self.execution.max_turns,
+                chat_template_mode=model.chat_template_mode,
+            )
+            if model.expected_request_extra_body != build_request_extra_body(request_config):
+                raise ValueError(f"request extra body is not exactly pinned for {model.model_key}")
         return self
 
 
@@ -262,6 +290,7 @@ class StudyCell(StrictModel):
     model_id: str
     served_model_name: ServedModelName
     model_revision: GitRevision
+    chat_template_mode: ChatTemplateMode
     contract_version: PromptContractVersion
     seed: NonNegativeInt
     temperature: Annotated[float, Field(strict=True, ge=0, le=2, allow_inf_nan=False)]

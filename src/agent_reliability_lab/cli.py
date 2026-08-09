@@ -20,7 +20,9 @@ from pydantic import JsonValue, ValidationError
 from agent_reliability_lab.agent.models import (
     AgentPolicy,
     AgentRunConfig,
+    ChatTemplateMode,
     PromptContractVersion,
+    build_request_extra_body,
 )
 from agent_reliability_lab.agent.persistence import RunStore
 from agent_reliability_lab.agent.prompt_sets import load_prompt_set, validate_prompt_set
@@ -633,6 +635,16 @@ def agent_run(
             help="Override the versioned system reporting contract declared by the prompt set.",
         ),
     ] = None,
+    chat_template_mode: Annotated[
+        ChatTemplateMode,
+        typer.Option(
+            "--chat-template-mode",
+            help=(
+                "Explicit request profile: disable_thinking sends Qwen's template option; "
+                "native omits chat_template_kwargs."
+            ),
+        ),
+    ] = ChatTemplateMode.DISABLE_THINKING,
     repetitions: Annotated[int, typer.Option("--repetitions", min=1)] = 1,
     seed: Annotated[int, typer.Option("--seed", min=0)] = 42,
     temperature: Annotated[float, typer.Option("--temperature", min=0.0, max=2.0)] = 0.0,
@@ -682,7 +694,9 @@ def agent_run(
             top_p=top_p,
             max_tokens=max_tokens,
             max_turns=max_turns,
+            chat_template_mode=chat_template_mode,
         )
+        request_extra_body = build_request_extra_body(config)
         resolved_run_id = run_id or datetime.now(UTC).strftime("run-%Y%m%dT%H%M%S.%fZ")
         store = RunStore(output_dir, resolved_run_id)
         provider_backoff_seconds = 0.25
@@ -724,6 +738,9 @@ def agent_run(
                 "prompt_set_id": prompt_set.prompt_set_id,
                 "prompt_set_sha256": _file_digest(prompt_set_path),
                 "contract_version": prompt_set.contract_version,
+                "chat_template_mode": config.chat_template_mode,
+                "request_extra_body": request_extra_body,
+                "request_extra_body_sha256": _json_digest(request_extra_body),
                 "system_prompt_sha256": _json_digest(
                     system_prompt(policy, prompt_set.contract_version)
                 ),

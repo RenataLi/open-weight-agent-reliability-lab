@@ -106,10 +106,10 @@ M3 compares complete serving stacks, not abstract base-model weights. A stack in
 weights, tokenizer and chat template, vLLM implementation, automatic tool-call parser, and serving
 flags. A difference between stacks therefore cannot be attributed to model weights alone.
 
-| Key | Pinned model | Tool parser | Deployment |
-| --- | --- | --- | --- |
-| Qwen | [`Qwen/Qwen3.5-9B`](https://huggingface.co/Qwen/Qwen3.5-9B/tree/cc5442c03a5c0bff0bd4c6888d9a40029c637733) at `cc5442c03a5c0bff0bd4c6888d9a40029c637733` | `qwen3_coder` plus `qwen3` reasoning parser | `deploy/compose.gpu.yml` |
-| Ministral | [`mistralai/Ministral-3-8B-Instruct-2512-BF16`](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-BF16/tree/f6fae9795746f63c9be8344932f01275f3c63734) at `f6fae9795746f63c9be8344932f01275f3c63734` | `mistral` | `deploy/compose.ministral3-8b.yml` |
+| Key | Pinned model | Tool parser | Chat-template request | Deployment |
+| --- | --- | --- | --- | --- |
+| Qwen | [`Qwen/Qwen3.5-9B`](https://huggingface.co/Qwen/Qwen3.5-9B/tree/cc5442c03a5c0bff0bd4c6888d9a40029c637733) at `cc5442c03a5c0bff0bd4c6888d9a40029c637733` | `qwen3_coder` plus `qwen3` reasoning parser | `disable_thinking` | `deploy/compose.gpu.yml` |
+| Ministral | [`mistralai/Ministral-3-8B-Instruct-2512-BF16`](https://huggingface.co/mistralai/Ministral-3-8B-Instruct-2512-BF16/tree/f6fae9795746f63c9be8344932f01275f3c63734) at `f6fae9795746f63c9be8344932f01275f3c63734` | `mistral` | `native` | `deploy/compose.ministral3-8b.yml` |
 
 Both use `vllm/vllm-openai:v0.26.0` at digest
 `sha256:770fe65b2c73ee74a5c42165cf3433de4048cc2cd9c57a937ca4e35aba5aa87b`,
@@ -121,8 +121,14 @@ addressing before any prospective request was sent. The final preregistration pi
 compatibility setting in Compose and exact-validates an allowlisted, secret-free view of the
 running container environment alongside the complete command hash.
 
-Its
-official model card documents BF16 deployment and native function calling. vLLM documents the
+The request profile is likewise explicit and hash-bound. Qwen retains
+`chat_template_kwargs.enable_thinking=false`; Ministral omits `chat_template_kwargs`. A
+complete effective request extra body and its canonical SHA-256 are pinned separately for each
+model stack and exact-validated against every cell manifest. A
+development-only Ministral canary showed that its native tokenizer rejects the Qwen-specific
+field with HTTP 400 before producing tokens or tool calls. The final protocol was corrected before
+any holdout-panel or scored request. The official model card documents BF16 deployment and native
+function calling. vLLM documents the
 [`mistral` parser](https://docs.vllm.ai/en/v0.26.0/features/tool_calling/) and supported
 [`Mistral3ForConditionalGeneration`](https://docs.vllm.ai/en/v0.26.0/models/supported_models/)
 architecture.
@@ -174,8 +180,9 @@ the denominator.
 
 Before opening a scored cell, the operator validates the strict study specification and hashes the
 protocol, prospective suite, prompt set, tool schemas, Compose file, allowlisted behavior-relevant
-container environment, complete sanitized container command, lockfile, and clean local Git
-revision. The model identity preflight must match the served name and pinned revision.
+container environment, complete sanitized container command, effective request extra body,
+lockfile, and clean local Git revision. The model identity preflight must match the served name and
+pinned revision.
 
 Canaries are limited engineering pilots and use only the existing M1/M2 development tasks
 `S06_APPROVED_ROLLBACK` and `S12_LOST_RESPONSE_AFTER_COMMIT`. For each stack they check
@@ -192,8 +199,8 @@ implementation belongs to a separately versioned future study.
 Scored cells run from the frozen specification into exclusive local artifact directories. A
 completed cell is immutable and resumability means scheduling only cells with no completed result,
 not overwriting or appending repetitions to an existing cell. The runner records contract, model
-and revision, seed, sampling, input hashes, deployment provenance, events, and exact per-task
-checks.
+and revision, seed, sampling, input hashes, deployment provenance, explicit chat-template mode,
+effective request-body hash, events, and exact per-task checks.
 
 Scoring and gates are computed from the strictly validated `result.json`. The append-only
 `events.jsonl` stream is checked for JSON-object records and bound into the artifact-set hash for

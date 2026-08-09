@@ -38,6 +38,13 @@ class PromptContractVersion(StrEnum):
     V2 = "v2"
 
 
+class ChatTemplateMode(StrEnum):
+    """Explicit request profile for model-stack-specific chat-template behavior."""
+
+    DISABLE_THINKING = "disable_thinking"
+    NATIVE = "native"
+
+
 class TerminationReason(StrEnum):
     REPORT_SUBMITTED = "report_submitted"
     TASK_COMPLETE = "task_complete"
@@ -124,6 +131,21 @@ class AgentRunConfig(StrictModel):
     top_p: Annotated[float, Field(strict=True, gt=0, le=1, allow_inf_nan=False)] = 1.0
     max_tokens: PositiveInt = 2048
     max_turns: PositiveInt = 12
+    chat_template_mode: ChatTemplateMode = ChatTemplateMode.DISABLE_THINKING
+
+
+def build_request_extra_body(config: AgentRunConfig) -> dict[str, JsonValue]:
+    """Build the complete non-provider-owned request body from one explicit stack profile."""
+
+    extra_body: dict[str, JsonValue] = {
+        "max_tokens": config.max_tokens,
+        "top_p": config.top_p,
+        "parallel_tool_calls": False,
+        "tool_choice": "auto",
+    }
+    if config.chat_template_mode is ChatTemplateMode.DISABLE_THINKING:
+        extra_body["chat_template_kwargs"] = {"enable_thinking": False}
+    return extra_body
 
 
 class ModelTurnRecord(StrictModel):

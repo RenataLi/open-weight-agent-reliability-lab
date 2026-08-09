@@ -147,7 +147,7 @@ def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path)
     assert validated.exit_code == 0
     assert "24 cells" in validated.stdout
     assert "160 scored + 32 descriptive" in validated.stdout
-    assert "e3d28dea41f2a3d40c94ebbc363559d1a188b1f1662caed1bb49b15dac962d84" in (validated.stdout)
+    assert "0c27f20f43e0c7a4d280b18d43b81a43a2bf44b4b16290badb92031e095396bc" in (validated.stdout)
 
     output = tmp_path / "study-plan.json"
     planned = runner.invoke(
@@ -541,6 +541,11 @@ def test_agent_run_filters_canary_and_persists_preflight_provenance(
     assert manifest["provider_attempts"] == 2
     assert manifest["provider_backoff_seconds"] == 0.25
     assert manifest["contract_version"] == "v1"
+    assert manifest["chat_template_mode"] == "disable_thinking"
+    assert manifest["request_extra_body"]["chat_template_kwargs"] == {"enable_thinking": False}
+    assert manifest["request_extra_body_sha256"] == (
+        "a708e0e8efb2d85fcfb6e63358670bd57378384f1fcb315391b2630de3d49e45"
+    )
     assert manifest["deployment_compose_path"] == "deploy/compose.gpu.yml"
     assert "@sha256:" in manifest["vllm_image_reference"]
     assert len(manifest["deployment_compose_sha256"]) == 64
@@ -582,6 +587,8 @@ def test_agent_run_contract_override_is_persisted(
             "test-model",
             "--contract-version",
             "v2",
+            "--chat-template-mode",
+            "native",
             "--run-id",
             "contract-v2",
         ],
@@ -591,6 +598,11 @@ def test_agent_run_contract_override_is_persisted(
     manifest = json.loads((output_dir / "contract-v2" / "manifest.json").read_text("utf-8"))
     result_payload = json.loads((output_dir / "contract-v2" / "result.json").read_text("utf-8"))
     assert manifest["contract_version"] == "v2"
+    assert manifest["chat_template_mode"] == "native"
+    assert "chat_template_kwargs" not in manifest["request_extra_body"]
+    assert manifest["request_extra_body_sha256"] == (
+        "446637575e9a6dd899e6f42f507eb9c03ae16d3428fcfed938eda191d7ddc3c5"
+    )
     assert result_payload["contract_version"] == "v2"
     assert manifest["system_prompt_sha256"] != (
         "4843d9ffe75650553e19b9117558685a38436f043a1c089bd8add8e5300e716e"

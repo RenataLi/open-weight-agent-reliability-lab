@@ -86,6 +86,7 @@ try {
             & (Join-Path $PSScriptRoot "m3_run_cell.ps1") `
                 -ModelProfile $ModelProfile `
                 -ContractVersion $cell.contract_version `
+                -ChatTemplateMode $cell.chat_template_mode `
                 -Seed $cell.seed `
                 -Temperature $cell.temperature `
                 -TopP $cell.top_p

@@ -33,6 +33,9 @@ def _manifest(spec: object, cell: object) -> dict[str, object]:
         "prompt_set_id": typed_spec.dataset.prompt_set_id,
         "prompt_set_sha256": typed_spec.dataset.prompt_set_sha256,
         "contract_version": typed_cell.contract_version.value,
+        "chat_template_mode": model.chat_template_mode.value,
+        "request_extra_body": model.expected_request_extra_body,
+        "request_extra_body_sha256": model.expected_request_extra_body_sha256,
         "system_prompt_sha256": typed_spec.system_prompt_sha256[typed_cell.contract_version],
         "tool_schemas_sha256": typed_spec.tool_schemas_sha256,
         "uv_lock_sha256": typed_spec.uv_lock_sha256,
@@ -132,6 +135,53 @@ def test_artifact_loader_rejects_tampered_container_environment(tmp_path: Path) 
     (cell_dir / "result.json").write_text("{}", encoding="utf-8")
 
     with pytest.raises(StudyArtifactError, match=r"observed_container_environment.*mismatch"):
+        load_study_cell_artifact(spec, cell, tmp_path)
+
+
+def test_artifact_loader_rejects_tampered_request_extra_body(tmp_path: Path) -> None:
+    spec = load_study_spec(PROJECT_ROOT / "studies" / "m3_protocol.json")
+    plan = build_study_plan(spec)
+    cell = next(item for item in plan.cells if item.model_key == "ministral3-8b")
+    cell_dir = tmp_path / cell.cell_id
+    cell_dir.mkdir()
+    manifest = _manifest(spec, cell)
+    manifest["request_extra_body"] = {
+        "max_tokens": 2048,
+        "top_p": 1.0,
+        "parallel_tool_calls": False,
+        "tool_choice": "auto",
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    (cell_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (cell_dir / "result.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(StudyArtifactError, match=r"request_extra_body.*mismatch"):
+        load_study_cell_artifact(spec, cell, tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("field", "tampered"),
+    [
+        ("chat_template_mode", "disable_thinking"),
+        ("request_extra_body_sha256", "0" * 64),
+    ],
+)
+def test_artifact_loader_rejects_tampered_request_profile_metadata(
+    tmp_path: Path,
+    field: str,
+    tampered: object,
+) -> None:
+    spec = load_study_spec(PROJECT_ROOT / "studies" / "m3_protocol.json")
+    plan = build_study_plan(spec)
+    cell = next(item for item in plan.cells if item.model_key == "ministral3-8b")
+    cell_dir = tmp_path / cell.cell_id
+    cell_dir.mkdir()
+    manifest = _manifest(spec, cell)
+    manifest[field] = tampered
+    (cell_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (cell_dir / "result.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(StudyArtifactError, match=rf"{field}.*mismatch"):
         load_study_cell_artifact(spec, cell, tmp_path)
 
 

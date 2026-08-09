@@ -6,6 +6,9 @@ param(
     [ValidateSet("v1", "v2")]
     [string]$ContractVersion,
     [Parameter(Mandatory = $true)]
+    [ValidateSet("disable_thinking", "native")]
+    [string]$ChatTemplateMode,
+    [Parameter(Mandatory = $true)]
     [ValidateRange(0, 2147483647)]
     [int]$Seed,
     [ValidateRange(0.0, 2.0)]
@@ -33,14 +36,19 @@ $profiles = @{
         Model = "qwen3.5-9b"
         Revision = "cc5442c03a5c0bff0bd4c6888d9a40029c637733"
         Compose = "deploy/compose.gpu.yml"
+        ChatTemplateMode = "disable_thinking"
     }
     ministral = @{
         Model = "ministral3-8b"
         Revision = "f6fae9795746f63c9be8344932f01275f3c63734"
         Compose = "deploy/compose.ministral3-8b.yml"
+        ChatTemplateMode = "native"
     }
 }
 $profile = $profiles[$ModelProfile]
+if ($ChatTemplateMode -ne $profile.ChatTemplateMode) {
+    throw "Chat-template mode $ChatTemplateMode does not match the pinned $ModelProfile stack ($($profile.ChatTemplateMode))."
+}
 if ($TopP -ne 1.0) {
     throw "The preregistered M3 study requires top_p=1.0."
 }
@@ -67,6 +75,7 @@ $arguments = @(
     "--deployment-compose", $profile.Compose,
     "--policy", "policy_aware",
     "--contract-version", $ContractVersion,
+    "--chat-template-mode", $ChatTemplateMode,
     "--repetitions", "1",
     "--seed", $Seed,
     "--temperature", $Temperature.ToString([Globalization.CultureInfo]::InvariantCulture),

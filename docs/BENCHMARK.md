@@ -120,11 +120,14 @@ Every task receives a clean copy of its fixture and runs sequentially. The comma
 - benchmark and prompt-set SHA-256 digests;
 - policy, repetition count, seed, temperature, top-p, token limit, and turn limit;
 - system-prompt contract version and the hash of the exact rendered prompt;
+- explicit chat-template mode, complete effective request extra body, and its canonical hash;
 - a secret-free allowlist and hash of behavior-relevant container environment settings;
 - whether an API key was configured, never its value.
 
 The runner requests one tool call at a time (`parallel_tool_calls: false`) and enforces that limit
-even if a compatible server ignores it. Arguments must be one strict JSON object. Duplicate keys,
+even if a compatible server ignores it. Qwen explicitly disables thinking through its chat
+template; native Mistral explicitly omits that model-specific field. Arguments must be one strict
+JSON object. Duplicate keys,
 non-finite values, duplicate provider call IDs, and multiple calls in one turn fail closed.
 
 Hard termination reasons are persisted for report submission, no tool call, tool-budget

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from agent_reliability_lab.agent.models import ChatTemplateMode
 from agent_reliability_lab.study import (
     StudySpec,
     build_study_plan,
@@ -27,7 +28,7 @@ def test_preregistered_plan_has_stable_complete_cartesian_matrix() -> None:
     assert first == second
     assert canonical_sha256(first) == canonical_sha256(second)
     assert canonical_sha256(first) == (
-        "9bfff599cd0444ae61b7a28681182bef239e92b84a10600c5e0f7f3c6128b065"
+        "8d622cc662fcf1a684cc3801c8931ad119d0d87d237c0c191eabccb848e46c74"
     )
     assert len(first.cells) == 24
     assert len({cell.cell_id for cell in first.cells}) == 24
@@ -40,6 +41,8 @@ def test_preregistered_plan_has_stable_complete_cartesian_matrix() -> None:
     assert first.cells[1].cell_id == "m3s-qwen35-9b-v2-s00000011-r01"
     assert first.cells[2].cell_id == "m3s-qwen35-9b-v1-s00000023-r01"
     assert first.cells[-1].cell_id == "m3g-ministral3-8b-v2-s00000000-r01"
+    assert first.cells[0].chat_template_mode is ChatTemplateMode.DISABLE_THINKING
+    assert first.cells[-1].chat_template_mode is ChatTemplateMode.NATIVE
 
 
 def test_protocol_hash_and_every_pinned_input_are_reproducible() -> None:
@@ -48,13 +51,19 @@ def test_protocol_hash_and_every_pinned_input_are_reproducible() -> None:
     verify_study_inputs(spec, PROJECT_ROOT)
 
     assert canonical_sha256(spec) == (
-        "e3d28dea41f2a3d40c94ebbc363559d1a188b1f1662caed1bb49b15dac962d84"
+        "0c27f20f43e0c7a4d280b18d43b81a43a2bf44b4b16290badb92031e095396bc"
     )
     assert spec.dataset.fixture_worlds == 3
     assert [model.revision for model in spec.models] == [
         "cc5442c03a5c0bff0bd4c6888d9a40029c637733",
         "f6fae9795746f63c9be8344932f01275f3c63734",
     ]
+    assert [model.chat_template_mode for model in spec.models] == [
+        ChatTemplateMode.DISABLE_THINKING,
+        ChatTemplateMode.NATIVE,
+    ]
+    assert "chat_template_kwargs" in spec.models[0].expected_request_extra_body
+    assert "chat_template_kwargs" not in spec.models[1].expected_request_extra_body
 
 
 def test_protocol_rejects_posthoc_gate_relaxation() -> None:
@@ -86,4 +95,14 @@ def test_protocol_rejects_unapproved_container_environment() -> None:
     raw["models"][0]["expected_container_environment"] = {"HF_TOKEN": "secret"}
 
     with pytest.raises(ValidationError, match="unapproved name or value"):
+        StudySpec.model_validate(raw)
+
+
+def test_protocol_rejects_native_mistral_with_qwen_template_kwargs() -> None:
+    raw = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    raw["models"][1]["expected_request_extra_body"]["chat_template_kwargs"] = {
+        "enable_thinking": False
+    }
+
+    with pytest.raises(ValidationError, match="native chat-template mode must omit"):
         StudySpec.model_validate(raw)

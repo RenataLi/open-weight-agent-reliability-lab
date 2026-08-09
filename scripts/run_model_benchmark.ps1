@@ -28,6 +28,7 @@ $arguments = @(
     "--model", "qwen3.5-9b",
     "--model-revision", "cc5442c03a5c0bff0bd4c6888d9a40029c637733",
     "--policy", "policy_aware",
+    "--chat-template-mode", "disable_thinking",
     "--repetitions", $Repetitions,
     "--seed", "42",
     "--temperature", "0",

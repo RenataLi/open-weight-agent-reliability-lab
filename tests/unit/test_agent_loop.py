@@ -13,6 +13,7 @@ from agent_reliability_lab.agent.models import (
     AgentPolicy,
     AgentRunConfig,
     AgentTaskPrompt,
+    ChatTemplateMode,
     TerminationReason,
 )
 from agent_reliability_lab.agent.prompt_sets import load_prompt_set, validate_prompt_set
@@ -36,6 +37,7 @@ class ScriptedProvider(ChatProvider):
     def __init__(self, completions: Sequence[ChatCompletion]) -> None:
         self._completions = list(completions)
         self.requests: list[tuple[ChatMessage, ...]] = []
+        self.extra_bodies: list[dict[str, JsonValue]] = []
 
     @property
     def model(self) -> str:
@@ -51,6 +53,7 @@ class ScriptedProvider(ChatProvider):
         assert tools
         assert extra_body is not None and extra_body["parallel_tool_calls"] is False
         self.requests.append(tuple(messages))
+        self.extra_bodies.append(dict(extra_body))
         return self._completions.pop(0)
 
     def close(self) -> None:
@@ -115,10 +118,54 @@ def _raw_tool_completion(sequence: int, name: str, arguments: str) -> ChatComple
     )
 
 
+def _text_completion() -> ChatCompletion:
+    return ChatCompletion(
+        id="text-completion",
+        model="scripted-model",
+        message=ChatMessage(role=ChatRole.ASSISTANT, content="No tool call."),
+        finish_reason="stop",
+        latency_ms=1.0,
+    )
+
+
 def _prompt_for(suite: BenchmarkSuite, task_id: str) -> AgentTaskPrompt:
     prompt_set = load_prompt_set(PROMPTS)
     validate_prompt_set(prompt_set, suite)
     return prompt_set.tasks[task_id]
+
+
+def test_chat_template_request_profile_is_explicit_and_model_name_independent(
+    suite: BenchmarkSuite,
+    task_by_id: Callable[[str], BenchmarkTask],
+) -> None:
+    task = task_by_id("S01_BAD_DEPLOY_DIAGNOSIS")
+    prompt = _prompt_for(suite, task.task_id)
+
+    qwen_provider = ScriptedProvider([_text_completion()])
+    AgentRunner(qwen_provider, AgentRunConfig()).run_task(suite, task, prompt)
+    assert qwen_provider.extra_bodies == [
+        {
+            "max_tokens": 2048,
+            "top_p": 1.0,
+            "parallel_tool_calls": False,
+            "tool_choice": "auto",
+            "chat_template_kwargs": {"enable_thinking": False},
+        }
+    ]
+
+    mistral_provider = ScriptedProvider([_text_completion()])
+    AgentRunner(
+        mistral_provider,
+        AgentRunConfig(chat_template_mode=ChatTemplateMode.NATIVE),
+    ).run_task(suite, task, prompt)
+    assert mistral_provider.extra_bodies == [
+        {
+            "max_tokens": 2048,
+            "top_p": 1.0,
+            "parallel_tool_calls": False,
+            "tool_choice": "auto",
+        }
+    ]
 
 
 def test_alternative_valid_diagnosis_trajectory_passes(

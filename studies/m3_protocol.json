@@ -47,6 +47,17 @@
       "deployment_compose_sha256": "816d3dbfafe57eaa6a34bf6f1fa58dd117831a94aac3e38cb4ddc41d1ea5fece",
       "vllm_image_reference": "vllm/vllm-openai:v0.26.0@sha256:770fe65b2c73ee74a5c42165cf3433de4048cc2cd9c57a937ca4e35aba5aa87b",
       "tool_call_parser": "qwen3_coder",
+      "chat_template_mode": "disable_thinking",
+      "expected_request_extra_body": {
+        "max_tokens": 2048,
+        "top_p": 1.0,
+        "parallel_tool_calls": false,
+        "tool_choice": "auto",
+        "chat_template_kwargs": {
+          "enable_thinking": false
+        }
+      },
+      "expected_request_extra_body_sha256": "a708e0e8efb2d85fcfb6e63358670bd57378384f1fcb315391b2630de3d49e45",
       "expected_container_command_sha256": "10e7c32c7e1ea6334f599f9949715649218217aa0e34109d1105ceb69f98cbf5",
       "expected_container_environment": {},
       "expected_container_environment_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
@@ -79,6 +90,14 @@
       "deployment_compose_sha256": "bee8615d8a68702137eb7f6e0ebba1c958476da3dfe706363fc46efa5c98fff7",
       "vllm_image_reference": "vllm/vllm-openai:v0.26.0@sha256:770fe65b2c73ee74a5c42165cf3433de4048cc2cd9c57a937ca4e35aba5aa87b",
       "tool_call_parser": "mistral",
+      "chat_template_mode": "native",
+      "expected_request_extra_body": {
+        "max_tokens": 2048,
+        "top_p": 1.0,
+        "parallel_tool_calls": false,
+        "tool_choice": "auto"
+      },
+      "expected_request_extra_body_sha256": "446637575e9a6dd899e6f42f507eb9c03ae16d3428fcfed938eda191d7ddc3c5",
       "expected_container_command_sha256": "c94cf31742cfddc68ff5b4c1d233ad42030f567ba5150b9b5c4b90edf8a195c2",
       "expected_container_environment": {
         "VLLM_USE_V2_MODEL_RUNNER": "0"

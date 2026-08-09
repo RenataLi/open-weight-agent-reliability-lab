@@ -107,8 +107,9 @@ Automatic function calling is configured according to the official
 [vLLM tool-calling guide](https://docs.vllm.ai/en/v0.26.0/features/tool_calling/).
 
 The runner sends `temperature`, `seed`, `top_p`, `max_tokens`, `tool_choice: auto`, and
-`parallel_tool_calls: false`. Thinking is disabled for the pinned Qwen chat template so that the
-experiment measures executable tool decisions through one controlled response channel.
+`parallel_tool_calls: false`. An explicit chat-template profile, never a model-name guess, adds
+`chat_template_kwargs.enable_thinking=false` for pinned Qwen and omits `chat_template_kwargs`
+entirely for native Mistral. The effective extra body and its hash are persisted with each run.
 
 See [Model provider](MODEL_PROVIDER.md) and
 [ADR 0002](decisions/0002-openai-compatible-boundary.md).
@@ -253,6 +254,12 @@ M3 manifests persist and exact-validate only an explicit allowlist of behavior-r
 environment settings, currently `VLLM_USE_V2_MODEL_RUNNER`; values of unrelated variables and
 secrets are never copied from Docker inspection. This environment digest complements the complete
 sanitized container-command digest and the byte hash of the Compose file.
+
+The model-facing request profile is also part of the stack. Qwen uses `disable_thinking` to retain
+the frozen M2 behavior. Ministral uses `native`; a development-only canary returned HTTP 400
+before producing tokens when the Qwen-specific `chat_template_kwargs` was supplied. This was
+corrected and preregistered before the prospective panel was opened. Artifact validation rejects
+any mode, effective request body, or request-body digest that differs from the model pin.
 
 The cross-model axis is explicitly a comparison of full inference stacks: weights, tokenizer,
 chat template, serving configuration, and parser. It is not interpreted as an isolated
