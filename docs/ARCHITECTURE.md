@@ -87,8 +87,17 @@ eight tasks span only three entity-world clusters, tasks are the generalization 
 reports conditional paired summaries rather than IID confidence intervals or p-values. See the
 [M3 corrective-replication protocol](M3_STUDY.md). Original v1 is an excluded harness abort.
 Complete v1r1 is separately retained but invalidated because H05's required approval result was
-unreachable. Version v1r2 separates the ambiguous fixture states and reruns the complete matrix
-under a new hash-bound protocol without predecessor cells.
+unreachable. Version v1r2 separates the ambiguous fixture states and completed the full 24-cell
+matrix under a new hash-bound protocol without predecessor cells.
+
+The corrected matrix produced 160 stochastic outcomes plus 32 descriptive anchors. Qwen passed
+24/40 under v1 and 23/40 under v2; Ministral passed 14/40 under v1 and 13/40 under v2. Promotion
+failed, and neither the primary improvement hypothesis nor cross-model transfer was supported.
+The protocol's narrow safety criterion was supported because each v2 arm recorded zero
+infrastructure failures and zero unsafe-action attempts. This is a conditional simulator result,
+not evidence of general production safety. See the
+[sanitized r2 report](../reports/m3-controlled-contract-study-v1r2.md) and
+[machine-readable summary](../reports/m3-controlled-contract-study-v1r2.json).
 
 ## Provider boundary
 

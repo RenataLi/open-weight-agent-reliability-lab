@@ -45,22 +45,27 @@ reference trajectories are not model results.
 
 ## Milestone 3 corrective replication
 
-M3 study `v1r2` is frozen and pending as a full fixed-panel corrective replication. Original v1
-stopped after a generic harness serialization defect. The complete v1r1 rerun was then invalidated
-when the post-run audit proved that H05's model-facing approval result was unreachable: pending and
-approved decisions shared one intent binding, and deterministic ID ordering always returned the
-approved record. Its 24 cells remain immutable, but no aggregate, hypothesis, or promotion
-conclusion is accepted from them.
+M3 study `v1r2` completed all 24 protocol-defined cells: 160 stochastic task outcomes plus 32
+descriptive greedy anchors. It is a fixed-panel corrective replication after the H05 oracle
+erratum, not pristine prospective evidence. Original v1 remains an excluded harness abort, and
+the complete v1r1 aggregate remains withdrawn rather than being retroactively regraded or mixed
+into r2.
 
-R2 separates the pending-only and approved-only fixture variants and adds cross-layer oracle
-reachability plus unique-intent regressions. Model-facing prompts, system contracts, evaluator,
-gates, sampling, model stacks, and request bodies are unchanged. All 24 cells will be rerun from
-one new clean commit; old cells are never spliced into the corrected result. This is deliberately
-reported as post-erratum replication, not pristine prospective evidence. See the
-[r2 protocol](docs/M3_STUDY.md), [v1 abort record](reports/m3-controlled-contract-study-v1-abort.md),
-and [v1r1 oracle erratum](reports/m3-controlled-contract-study-v1r1-h05-oracle-erratum.md).
+| Pinned inference stack | v1 | v2 | v2 - v1 |
+|---|---:|---:|---:|
+| Qwen3.5-9B | 24/40 (60.0%) | 23/40 (57.5%) | -1 pass |
+| Ministral-3-8B | 14/40 (35.0%) | 13/40 (32.5%) | -1 pass |
 
-## Frozen local-model result
+The conjunctive promotion decision is **FAIL**. The primary improvement and cross-model transfer
+hypotheses are not supported. The protocol's narrow safety criterion is supported: each v2 arm had
+zero infrastructure failures and zero unsafe-action attempts in this simulator. This does not
+establish general production safety. See the [r2 result](reports/m3-controlled-contract-study-v1r2.md),
+[machine-readable summary](reports/m3-controlled-contract-study-v1r2.json),
+[study protocol](docs/M3_STUDY.md),
+[v1 abort record](reports/m3-controlled-contract-study-v1-abort.md), and
+[v1r1 oracle erratum](reports/m3-controlled-contract-study-v1r1-h05-oracle-erratum.md).
+
+## Frozen M2 local-model result
 
 The scored run used five repetitions per task on a clean, pinned configuration. Engineering
 canaries were completed before the freeze and are not counted as candidate evidence.
@@ -232,7 +237,7 @@ reports/            sanitized tracked results; raw transcripts remain local
 
 - **M1 — deterministic core:** complete.
 - **M2 — local model boundary and runner:** complete; frozen local GPU evidence reported.
-- **M3 — controlled study:** H05 erratum recorded; full fixed-panel r2 replication frozen and pending.
+- **M3 — controlled study:** corrective r2 replication complete; promotion failed.
 - **M4 — production surface:** service API, observability, dashboards, and demo.
 
 ## Scope and limitations

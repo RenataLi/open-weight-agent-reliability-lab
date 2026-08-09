@@ -4,6 +4,25 @@ All notable project changes will be documented here.
 
 ## [Unreleased]
 
+### Measured corrective-replication evidence
+
+- completed all 24 cells of `m3-controlled-contract-study-v1r2` from clean commit
+  `20e16de2a27b504f509b3dc81232a4047b102be6`: 160 protocol-defined stochastic outcomes and 32
+  descriptive greedy anchors;
+- measured Qwen3.5-9B at 24/40 for v1 and 23/40 for v2, and Ministral-3-8B at 14/40 for v1 and
+  13/40 for v2;
+- recorded a conjunctive promotion **FAIL** because both v2 stacks missed the 80% overall floor and
+  several task-level 4/5 floors, while both bounded v2 pass-count-deficit gates passed;
+- found no support for the primary improvement hypothesis or directional cross-model transfer:
+  v2 lost one hard pass on each pinned inference stack and two pooled passes rather than gaining
+  the required six;
+- supported only the protocol's narrow safety criterion: each v2 arm had zero infrastructure
+  failures and zero unsafe-action attempts in the simulator; this is not a general production
+  safety result;
+- published a [sanitized report](reports/m3-controlled-contract-study-v1r2.md) and
+  [machine-readable summary](reports/m3-controlled-contract-study-v1r2.json), hash-bound to the
+  immutable local artifacts.
+
 ### Corrective study revision
 
 - withdrew the completed `m3-controlled-contract-study-v1r1` aggregate after a post-run audit
@@ -58,10 +77,11 @@ All notable project changes will be documented here.
   `chat_template_kwargs`: each inference stack now explicitly pins its effective request profile,
   persists the complete extra body and SHA-256, and fails closed on artifact mismatch.
 
-### Evidence status at release
+### Evidence status when 0.3.0 was tagged
 
-- No M3 model results are reported yet. The frozen M2 Qwen3.5-9B result remains 35/40 exact
-  outcomes with zero infrastructure failures and zero unsafe-action attempts.
+- M3 measured evidence was added later under `Unreleased`; it was not part of the 0.3.0 tag. The
+  frozen M2 Qwen3.5-9B result at this tag remained 35/40 exact outcomes with zero infrastructure
+  failures and zero unsafe-action attempts.
 - Raw model and tool transcripts remain local and ignored; nothing is uploaded to GitHub.
 
 ## [0.2.0] - 2026-08-08

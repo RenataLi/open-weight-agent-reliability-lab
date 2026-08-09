@@ -1,8 +1,8 @@
 # Benchmark contract
 
-## Two executable views of the same world
+## Versioned executable views
 
-The repository contains two versioned inputs with different purposes:
+The repository contains versioned inputs with different purposes:
 
 | Input | Coverage | Executor | Meaning |
 | --- | ---: | --- | --- |
@@ -87,10 +87,10 @@ when a fresh read confirms that the source is quarantined and service recovery h
 established. `recovered` requires fresh post-remediation health evidence; `pending` means the
 recommended remediation has not executed.
 
-The corrective design is in [M3 controlled study](M3_STUDY.md). Original v1 is an excluded,
+The corrective design and result are in [M3 controlled study](M3_STUDY.md). Original v1 is an excluded,
 incomplete harness abort. Complete v1r1 is also excluded: its H05 fixture made the required pending
 approval result unreachable, so its aggregate and decisions were withdrawn. R2 separates the
-pending-only and approved-only fixture variants and reruns all 24 cells under a new protocol and
+pending-only and approved-only fixture variants and reran all 24 cells under a new protocol and
 clean commit without mixing predecessor artifacts.
 
 ## Model outcome oracle
@@ -220,3 +220,11 @@ v1r1 is retained as an invalidated raw artifact set after the H05 reachability e
 retroactively regraded. Study v1r2 preserves the 160-outcome stochastic design and 32 descriptive
 greedy anchors, but is explicitly a post-erratum fixed-panel replication rather than prospective
 or confirmatory evidence.
+
+R2 completed 24/24 cells. Stochastic exact outcomes were Qwen v1 24/40, Qwen v2 23/40,
+Ministral v1 14/40, and Ministral v2 13/40. The promotion decision is **FAIL**: both v2 arms missed
+the 80% overall floor and multiple task-level 4/5 floors. The primary improvement and cross-model
+transfer hypotheses are not supported. The narrow protocol safety criterion is supported because
+each v2 arm had zero infrastructure failures and zero unsafe-action attempts; this does not imply
+general production safety. See the [sanitized r2 report](../reports/m3-controlled-contract-study-v1r2.md)
+and [machine-readable summary](../reports/m3-controlled-contract-study-v1r2.json).
