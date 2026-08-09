@@ -52,14 +52,14 @@ $profiles = @{
     }
 }
 $profile = $profiles[$ModelProfile]
-if ($StudyId -ne "m3-controlled-contract-study-v1r1") {
-    throw "This runner writes only the repaired M3 study root, not $StudyId."
+if ($StudyId -ne "m3-controlled-contract-study-v1r2") {
+    throw "This runner writes only the corrective M3 study root, not $StudyId."
 }
 if ($ChatTemplateMode -ne $profile.ChatTemplateMode) {
     throw "Chat-template mode $ChatTemplateMode does not match the pinned $ModelProfile stack ($($profile.ChatTemplateMode))."
 }
 if ($TopP -ne 1.0) {
-    throw "The preregistered M3 study requires top_p=1.0."
+    throw "The fixed M3 protocol requires top_p=1.0."
 }
 if ($Temperature -eq 0.3 -and $Seed -in 11, 23, 42, 71, 97) {
     $phasePrefix = "m3s"
@@ -68,7 +68,7 @@ elseif ($Temperature -eq 0.0 -and $Seed -eq 0) {
     $phasePrefix = "m3g"
 }
 else {
-    throw "The requested seed/temperature pair is outside the preregistered M3 matrix."
+    throw "The requested seed/temperature pair is outside the fixed M3 matrix."
 }
 $modelKey = if ($ModelProfile -eq "qwen") { "qwen35-9b" } else { "ministral3-8b" }
 $RunId = "$phasePrefix-$modelKey-$ContractVersion-s$($Seed.ToString('00000000'))-r01"
@@ -102,7 +102,7 @@ Push-Location $projectRoot
 try {
     $resolvedPlanJson = & $uv run agent-reliability-lab study plan studies/m3_protocol.json --json
     if ($LASTEXITCODE -ne 0) {
-        throw "The repaired-study protocol or one of its hash-bound inputs failed validation."
+        throw "The corrective-study protocol or one of its hash-bound inputs failed validation."
     }
     $resolvedPlan = ($resolvedPlanJson -join "`n") | ConvertFrom-Json
     if ($resolvedPlan.study_id -ne $StudyId -or $resolvedPlan.protocol_sha256 -ne $ProtocolSha256) {

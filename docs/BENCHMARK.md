@@ -8,8 +8,8 @@ The repository contains two versioned inputs with different purposes:
 | --- | ---: | --- | --- |
 | `benchmarks/smoke_suite.json` | 12 tasks | reference trajectories | validates simulator and grader semantics |
 | `benchmarks/model_prompts_v1.json` | 8 development tasks | local model loop | frozen M2 model evidence and engineering canaries |
-| `benchmarks/m3_holdout_suite.json` | 8 prospective tasks | reference trajectories | validates the entity-disjoint M3 fixtures and oracle |
-| `benchmarks/m3_holdout_prompts.json` | same 8 tasks | local model loop | preregistered M3 contract and cross-stack comparison |
+| `benchmarks/m3_holdout_suite.json` | 8 fixed-panel tasks | reference trajectories | validates the corrected M3 fixtures and model-facing oracle |
+| `benchmarks/m3_holdout_prompts.json` | same 8 tasks | local model loop | protocol-defined M3 contract and cross-stack comparison |
 
 All inputs use strict Pydantic schemas with unknown fields rejected. Each model prompt set is
 cross-validated against its benchmark suite: suite and task IDs must match, required calls must
@@ -66,27 +66,32 @@ Each prompt can require tools, observed error codes, and order-independent call 
 argument subsets, result subsets, and cited evidence. This prevents a model from receiving credit
 for accidentally landing on a fixture's initial state or claiming evidence it never observed.
 
-## M3 prospective panel
+## M3 corrected fixed panel
 
-The M3 panel has eight new tasks across three simulated worlds: deployment diagnosis, stale-source
+The M3 panel has eight tasks in four isolated fixtures across three entity-world clusters:
+deployment diagnosis, stale-source
 diagnosis, false-alert control, runbook injection, pending quarantine approval, approved rollback,
 HTTP 429 recovery, and exact quarantine replay after a lost response. Its entity identifiers are
-disjoint from the M2 development tasks. Reference execution passes 8/8 and establishes fixture
-coherence only; it is not model evidence.
+disjoint from the M2 development tasks. Reference execution passes 8/8 through both the
+deterministic reference grader and the actual model-facing outcome oracle. Each fixture also has
+unique approval intent digests. These checks establish reachability only; they are not model
+evidence.
 
 Agent-facing requests use opaque `case-xxxxxxxx` handles instead of semantic task IDs. This keeps
-labels such as `LOST_RESPONSE_QUARANTINE` from leaking the expected strategy. The holdout is not
-used for canaries: its first model exposure is scored, and observed results cannot be used to tune
-the prompts, tools, budgets, evaluator, or promotion gates.
+labels such as `LOST_RESPONSE_QUARANTINE` from leaking the expected strategy. Development canaries
+never use these tasks. The panel was first exposed under original v1; r2 is therefore a
+fixed-panel corrective replication, not a new prospective holdout.
 
 The structured report uses exact lifecycle semantics. `contained` is valid after quarantine only
 when a fresh read confirms that the source is quarantined and service recovery has not been
 established. `recovered` requires fresh post-remediation health evidence; `pending` means the
 recommended remediation has not executed.
 
-The repaired design is in [M3 controlled study](M3_STUDY.md). Original v1 is an excluded,
-incomplete harness abort: one 3/8 cell completed, one cell is partial, and 22 cells were unrun.
-There is no aggregate or promotion conclusion; the complete v1r1 confirmatory rerun is pending.
+The corrective design is in [M3 controlled study](M3_STUDY.md). Original v1 is an excluded,
+incomplete harness abort. Complete v1r1 is also excluded: its H05 fixture made the required pending
+approval result unreachable, so its aggregate and decisions were withdrawn. R2 separates the
+pending-only and approved-only fixture variants and reruns all 24 cells under a new protocol and
+clean commit without mixing predecessor artifacts.
 
 ## Model outcome oracle
 
@@ -210,6 +215,8 @@ tracked report and sanitized JSON summary publish aggregate evidence, provenance
 each raw artifact. Full transcripts should be released separately only after a secret scan.
 
 M3 v1 was archived as an incomplete harness abort and must not be presented as aggregate evidence.
-Its complete 3/8 cell is excluded, its second cell is partial, and 22 cells were unrun. Repaired
-study v1r1 preserves the full 160-outcome stochastic design and 32 descriptive greedy anchors, but
-is explicitly a confirmatory rerun after prior exposure rather than a pristine prospective pass.
+Its complete 3/8 cell is excluded, its second cell is partial, and 22 cells were unrun. Complete
+v1r1 is retained as an invalidated raw artifact set after the H05 reachability erratum; it is never
+retroactively regraded. Study v1r2 preserves the 160-outcome stochastic design and 32 descriptive
+greedy anchors, but is explicitly a post-erratum fixed-panel replication rather than prospective
+or confirmatory evidence.

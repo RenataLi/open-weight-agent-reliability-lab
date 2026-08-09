@@ -148,8 +148,8 @@ def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path)
     assert validated.exit_code == 0
     assert "24 cells" in validated.stdout
     assert "160 scored + 32 descriptive" in validated.stdout
-    assert "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a" in (validated.stdout)
-    assert Path("runs/m3-controlled-contract-study-v1r1/cells") == DEFAULT_STUDY_CELLS
+    assert "5dee1a3fc9f815a04a1c6ea06b4a52cb431831e062f649e54d01c5a4dc586b77" in (validated.stdout)
+    assert Path("runs/m3-controlled-contract-study-v1r2/cells") == DEFAULT_STUDY_CELLS
 
     output = tmp_path / "study-plan.json"
     planned = runner.invoke(
@@ -158,7 +158,7 @@ def test_study_validate_and_plan_are_frozen_and_machine_readable(tmp_path: Path)
     )
     assert planned.exit_code == 0
     payload = json.loads(planned.stdout)
-    assert payload["study_id"] == "m3-controlled-contract-study-v1r1"
+    assert payload["study_id"] == "m3-controlled-contract-study-v1r2"
     assert payload["total_task_runs"] == 192
     assert len(payload["cells"]) == 24
     assert json.loads(output.read_text(encoding="utf-8")) == payload
@@ -416,7 +416,7 @@ def test_agent_run_requires_paired_study_provenance(tmp_path: Path) -> None:
         [
             *_agent_args(output_dir),
             "--study-id",
-            "m3-controlled-contract-study-v1r1",
+            "m3-controlled-contract-study-v1r2",
         ],
     )
 
@@ -609,9 +609,9 @@ def test_agent_run_contract_override_is_persisted(
             "--contract-version",
             "v2",
             "--study-id",
-            "m3-controlled-contract-study-v1r1",
+            "m3-controlled-contract-study-v1r2",
             "--study-protocol-sha256",
-            "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a",
+            "5dee1a3fc9f815a04a1c6ea06b4a52cb431831e062f649e54d01c5a4dc586b77",
             "--chat-template-mode",
             "native",
             "--run-id",
@@ -623,9 +623,9 @@ def test_agent_run_contract_override_is_persisted(
     manifest = json.loads((output_dir / "contract-v2" / "manifest.json").read_text("utf-8"))
     result_payload = json.loads((output_dir / "contract-v2" / "result.json").read_text("utf-8"))
     assert manifest["contract_version"] == "v2"
-    assert manifest["study_id"] == "m3-controlled-contract-study-v1r1"
+    assert manifest["study_id"] == "m3-controlled-contract-study-v1r2"
     assert manifest["study_protocol_sha256"] == (
-        "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a"
+        "5dee1a3fc9f815a04a1c6ea06b4a52cb431831e062f649e54d01c5a4dc586b77"
     )
     assert manifest["chat_template_mode"] == "native"
     assert "chat_template_kwargs" not in manifest["request_extra_body"]

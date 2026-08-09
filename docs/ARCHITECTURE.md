@@ -65,14 +65,15 @@ There are three evidence layers over the same simulator:
    contract is internally coherent;
 2. the M2 development set presents eight selected tasks to a local tool-calling model and grades
    the observed outcome without requiring the reference call order;
-3. the M3 prospective set presents eight new tasks across three disjoint worlds through the same
-   runner and oracle for a preregistered contract and cross-stack comparison.
+3. the corrected M3 set presents eight fixed-panel tasks in four isolated fixtures across three
+   entity-world clusters through the same runner and oracle for a protocol-defined contract and
+   cross-stack comparison.
 
 Reference results and model results are deliberately distinct.
 
 ## M3 study boundary
 
-The M3 runner sends an opaque `case-xxxxxxxx` handle instead of the semantic prospective task ID,
+The M3 runner sends an opaque `case-xxxxxxxx` handle instead of the semantic task ID,
 so a label such as `APPROVED_ROLLBACK` cannot disclose the intended behavior. The intervention is
 restricted to a versioned system-prompt contract: v1 remains byte-stable, while v2 adds two
 general rules for declarative remediation and successful-read evidence. Task prompts, available
@@ -82,11 +83,12 @@ paired comparison.
 The frozen matrix crosses two prompt contracts, two pinned inference stacks, five stochastic
 seeds, and eight tasks. The 160 stochastic outcomes are eligible for promotion gates; 32
 temperature-zero anchors are descriptive only. Seeds measure decoding stability. Because the
-eight tasks come from only three worlds, tasks are the generalization units and the study reports
-conditional paired summaries rather than IID confidence intervals or p-values. See the
-[M3 repaired-study preregistration](M3_STUDY.md). Original v1 is an excluded harness abort with
-one complete cell, one partial cell, and 22 unrun cells; it supports no aggregate or promotion
-conclusion. Version v1r1 reruns the complete matrix under a separately bound protocol.
+eight tasks span only three entity-world clusters, tasks are the generalization units and the study
+reports conditional paired summaries rather than IID confidence intervals or p-values. See the
+[M3 corrective-replication protocol](M3_STUDY.md). Original v1 is an excluded harness abort.
+Complete v1r1 is separately retained but invalidated because H05's required approval result was
+unreachable. Version v1r2 separates the ambiguous fixture states and reruns the complete matrix
+under a new hash-bound protocol without predecessor cells.
 
 ## Provider boundary
 
@@ -224,7 +226,7 @@ A process interruption can therefore leave a manifest and event prefix without a
 cannot expose a partially written JSON result. Existing run directories are never overwritten.
 Secrets are not persisted: the manifest records only whether the configured API-key environment
 variable was present, and the recorded provider URL excludes credentials, query, and fragment.
-Scored M3 manifests additionally bind the repaired `study_id` and canonical protocol SHA-256, so
+Scored M3 manifests additionally bind the corrective `study_id` and canonical protocol SHA-256, so
 parent-study cells cannot be accepted through copying or a mistaken cells-directory argument.
 
 ## Reproducibility envelope
@@ -262,7 +264,7 @@ sanitized container-command digest and the byte hash of the Compose file.
 The model-facing request profile is also part of the stack. Qwen uses `disable_thinking` to retain
 the frozen M2 behavior. Ministral uses `native`; a development-only canary returned HTTP 400
 before producing tokens when the Qwen-specific `chat_template_kwargs` was supplied. This was
-corrected and preregistered before the prospective panel was opened. Artifact validation rejects
+corrected and frozen before the original panel was opened. Artifact validation rejects
 any mode, effective request body, or request-body digest that differs from the model pin.
 
 The cross-model axis is explicitly a comparison of full inference stacks: weights, tokenizer,

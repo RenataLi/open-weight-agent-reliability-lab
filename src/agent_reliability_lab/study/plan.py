@@ -49,7 +49,7 @@ def load_study_spec(path: Path) -> StudySpec:
 
 
 def verify_study_inputs(spec: StudySpec, project_root: Path) -> None:
-    """Verify the frozen suite and prompts against their preregistered byte digests."""
+    """Verify the fixed suite and prompts against their protocol-defined byte digests."""
 
     suite_path = project_root / Path(spec.dataset.suite_path)
     prompt_path = project_root / Path(spec.dataset.prompt_set_path)
@@ -58,26 +58,39 @@ def verify_study_inputs(spec: StudySpec, project_root: Path) -> None:
         (prompt_path, spec.dataset.prompt_set_sha256),
     ):
         if not path.is_file():
-            raise FileNotFoundError(f"preregistered input is missing: {path}")
+            raise FileNotFoundError(f"protocol-defined input is missing: {path}")
         observed = file_sha256(path)
         if observed != expected_digest:
             raise ValueError(
-                f"preregistered input digest mismatch for {path}: "
+                f"protocol-defined input digest mismatch for {path}: "
                 f"expected {expected_digest}, observed {observed}"
             )
 
     suite = BenchmarkSuite.model_validate_json(suite_path.read_text(encoding="utf-8"))
     prompts = AgentPromptSet.model_validate_json(prompt_path.read_text(encoding="utf-8"))
     if suite.suite_id != spec.dataset.suite_id:
-        raise ValueError("suite_id does not match the preregistered protocol")
+        raise ValueError("suite_id does not match the fixed protocol")
     if prompts.prompt_set_id != spec.dataset.prompt_set_id:
-        raise ValueError("prompt_set_id does not match the preregistered protocol")
+        raise ValueError("prompt_set_id does not match the fixed protocol")
     if prompts.suite_id != suite.suite_id:
         raise ValueError("prompt set references a different suite")
     suite_task_ids = tuple(sorted(task.task_id for task in suite.tasks))
     prompt_task_ids = tuple(sorted(prompts.tasks))
     if suite_task_ids != spec.dataset.task_ids or prompt_task_ids != spec.dataset.task_ids:
-        raise ValueError("suite or prompt task IDs do not match the preregistered panel")
+        raise ValueError("suite or prompt task IDs do not match the fixed panel")
+    if len(suite.fixtures) != spec.dataset.scenario_fixtures:
+        raise ValueError("scenario fixture count does not match the fixed protocol")
+    entity_worlds = {
+        (
+            tuple(sorted(fixture.world.services)),
+            tuple(sorted(fixture.world.deployments)),
+            tuple(sorted(fixture.world.data_sources)),
+            tuple(sorted(fixture.world.incidents)),
+        )
+        for fixture in suite.fixtures.values()
+    }
+    if len(entity_worlds) != spec.dataset.entity_worlds:
+        raise ValueError("entity-world cluster count does not match the fixed protocol")
 
     for contract in spec.contracts:
         observed = canonical_sha256(system_prompt(spec.policy, contract))
@@ -89,12 +102,24 @@ def verify_study_inputs(spec: StudySpec, project_root: Path) -> None:
 
     uv_lock = project_root / "uv.lock"
     if not uv_lock.is_file() or file_sha256(uv_lock) != spec.uv_lock_sha256:
-        raise ValueError("uv.lock does not match the preregistered protocol")
-    abort_record = project_root / spec.lineage.abort_record_path
-    if not abort_record.is_file():
-        raise FileNotFoundError(f"study abort record is missing: {abort_record}")
-    if file_sha256(abort_record) != spec.lineage.abort_record_sha256:
-        raise ValueError("study abort record does not match the repaired-study lineage")
+        raise ValueError("uv.lock does not match the fixed protocol")
+    for record_path, expected_sha256, label in (
+        (
+            spec.lineage.original_abort_record_path,
+            spec.lineage.original_abort_record_sha256,
+            "original harness-abort record",
+        ),
+        (
+            spec.lineage.r1_erratum_record_path,
+            spec.lineage.r1_erratum_record_sha256,
+            "r1 oracle-erratum record",
+        ),
+    ):
+        record = project_root / record_path
+        if not record.is_file():
+            raise FileNotFoundError(f"{label} is missing: {record}")
+        if file_sha256(record) != expected_sha256:
+            raise ValueError(f"{label} does not match the corrective-study lineage")
     for model in spec.models:
         compose_path = project_root / model.deployment_compose
         if not compose_path.is_file():

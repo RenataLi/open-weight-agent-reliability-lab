@@ -32,13 +32,14 @@ from agent_reliability_lab.study.plan import canonical_sha256
 _SCHEMA_INVALID_CODES = {"invalid_arguments", "unknown_tool", "tool_not_allowed"}
 _POLICY_INVALID_STATUSES = {ToolStatus.POLICY_DENIED, ToolStatus.APPROVAL_REQUIRED}
 _PAIRING_NOTE: Final = (
-    "The eight tasks, nested in three constructed fixture worlds, are the conditional "
-    "generalization units; seeds measure decoding stability. No IID confidence interval "
-    "or p-value is reported over the 40 paired runs."
+    "The eight fixed-panel tasks span four scenario fixtures across three entity-world "
+    "clusters and are the conditional generalization units; seeds measure decoding "
+    "stability. No IID confidence interval or p-value is reported over the 40 paired runs."
 )
 _PROMOTION_NOTE: Final = (
-    "Promotion gates use only the 160 preregistered stochastic task runs. "
-    "The 32 greedy-anchor task runs are descriptive and excluded from promotion decisions."
+    "Promotion gates use only the 160 protocol-defined stochastic task runs in this fixed-panel "
+    "corrective replication. The 32 greedy-anchor task runs are descriptive and excluded from "
+    "promotion decisions."
 )
 
 
@@ -536,7 +537,7 @@ def render_markdown_report(report: StudyReport) -> str:
     """Render a compact deterministic report from computed data only."""
 
     lines = [
-        f"# M3 controlled reliability study — `{report.study_id}`",
+        f"# M3 fixed-panel corrective replication - `{report.study_id}`",
         "",
         f"Promotion gate: **{'PASS' if report.promotion_passed else 'FAIL'}**",
         "",
@@ -570,13 +571,13 @@ def render_markdown_report(report: StudyReport) -> str:
     lines.extend(["", "## Promotion gates", ""])
     for check in report.gate_checks:
         lines.append(
-            f"- {'PASS' if check.passed else 'FAIL'} — `{check.name}` "
+            f"- {'PASS' if check.passed else 'FAIL'} - `{check.name}` "
             f"(required {check.requirement}; observed {check.observed})."
         )
-    lines.extend(["", "## Preregistered hypothesis decisions", ""])
+    lines.extend(["", "## Protocol-defined hypothesis decisions", ""])
     for hypothesis_check in report.hypothesis_checks:
         lines.append(
-            f"- {'SUPPORTED' if hypothesis_check.supported else 'NOT SUPPORTED'} — "
+            f"- {'SUPPORTED' if hypothesis_check.supported else 'NOT SUPPORTED'} - "
             f"`{hypothesis_check.hypothesis.value}` "
             f"({hypothesis_check.criterion}; observed {hypothesis_check.observed})."
         )

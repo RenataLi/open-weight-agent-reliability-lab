@@ -18,7 +18,7 @@ else {
     throw "uv was not found. Install uv or create the project-local bootstrap environment."
 }
 
-$studyId = "m3-controlled-contract-study-v1r1"
+$studyId = "m3-controlled-contract-study-v1r2"
 $studyRoot = Join-Path $projectRoot "runs\$studyId"
 $cellsRoot = Join-Path $studyRoot "cells"
 $planPath = Join-Path $studyRoot "study-plan.json"
@@ -40,14 +40,14 @@ Push-Location $projectRoot
 try {
     $gitStatus = git status --porcelain --untracked-files=normal
     if ($LASTEXITCODE -ne 0) {
-        throw "The preregistered study requires a readable local Git revision."
+        throw "The fixed study protocol requires a readable local Git revision."
     }
     if ($gitStatus) {
-        throw "The preregistered study must run from a clean Git worktree."
+        throw "The fixed study protocol must run from a clean Git worktree."
     }
     $studyCommit = (git rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0 -or $studyCommit -notmatch "^[0-9a-f]{40}$") {
-        throw "The preregistered study requires one immutable Git commit."
+        throw "The fixed study protocol requires one immutable Git commit."
     }
 
     & $uv run agent-reliability-lab study plan studies/m3_protocol.json --output $planPath
@@ -56,11 +56,11 @@ try {
     }
     $plan = Get-Content -LiteralPath $planPath -Raw | ConvertFrom-Json
     if ($plan.study_id -ne $studyId) {
-        throw "The expanded plan belongs to $($plan.study_id), not repaired study $studyId."
+        throw "The expanded plan belongs to $($plan.study_id), not corrective study $studyId."
     }
     $selectedCells = @($plan.cells | Where-Object { $_.model_key -eq $modelKey })
     if ($selectedCells.Count -ne 12) {
-        throw "Expected 12 preregistered cells for $modelKey, observed $($selectedCells.Count)."
+        throw "Expected 12 protocol-defined cells for $modelKey, observed $($selectedCells.Count)."
     }
 
     try {

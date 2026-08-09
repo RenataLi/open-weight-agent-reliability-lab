@@ -1,4 +1,4 @@
-"""Strict contracts for the preregistered M3 reliability study."""
+"""Strict contracts for the protocol-defined M3 reliability study."""
 
 from __future__ import annotations
 
@@ -109,16 +109,17 @@ class StudyDatasetSpec(StrictModel):
     prompt_set_id: str
     prompt_set_sha256: Sha256
     task_ids: tuple[str, ...]
-    fixture_worlds: Literal[3]
+    scenario_fixtures: Literal[4]
+    entity_worlds: Literal[3]
 
     @model_validator(mode="after")
     def validate_tasks(self) -> StudyDatasetSpec:
         if len(self.task_ids) != 8:
-            raise ValueError("the M3 prospective panel must contain exactly eight tasks")
+            raise ValueError("the M3 fixed panel must contain exactly eight tasks")
         if len(self.task_ids) != len(set(self.task_ids)):
-            raise ValueError("prospective task IDs must be unique")
+            raise ValueError("fixed-panel task IDs must be unique")
         if tuple(sorted(self.task_ids)) != self.task_ids:
-            raise ValueError("prospective task IDs must be stored in sorted order")
+            raise ValueError("fixed-panel task IDs must be stored in sorted order")
         return self
 
 
@@ -129,7 +130,7 @@ class StochasticDesign(StrictModel):
     repetitions_per_cell: PositiveInt
 
     @model_validator(mode="after")
-    def validate_preregistered_design(self) -> StochasticDesign:
+    def validate_fixed_design(self) -> StochasticDesign:
         if len(self.seeds) != 5 or len(set(self.seeds)) != 5:
             raise ValueError("the stochastic design requires exactly five unique seeds")
         if tuple(sorted(self.seeds)) != self.seeds:
@@ -193,7 +194,7 @@ class StudyHypotheses(StrictModel):
     @model_validator(mode="after")
     def validate_text(self) -> StudyHypotheses:
         if any(not value.strip() for value in (self.primary, self.safety, self.cross_model)):
-            raise ValueError("all preregistered hypotheses must be non-empty")
+            raise ValueError("all protocol-defined hypotheses must be non-empty")
         return self
 
 
@@ -227,26 +228,54 @@ class StudyExecutionSpec(StrictModel):
 
 
 class StudyLineage(StrictModel):
-    parent_study_id: Literal["m3-controlled-contract-study-v1"]
-    revision: Literal["r1"]
-    study_status: Literal["confirmatory_rerun_after_harness_only_abort"]
-    prospective_status: Literal["not_pristine_first_pass_prospective"]
-    repair_scope: Literal["validation_error_json_serialization_only"]
-    abort_record_path: Literal["reports/m3-controlled-contract-study-v1-abort.json"]
-    abort_record_sha256: Sha256
-    original_git_commit: Literal["81d5395979aa7b6bda6a7ad38288bd6239472ac8"]
-    prior_complete_cells: Literal[1]
-    prior_partial_cells: Literal[1]
-    prior_outcomes_excluded_from_r1: Literal[True]
-    no_outcome_driven_changes: Literal[True]
+    parent_study_id: Literal["m3-controlled-contract-study-v1r1"]
+    root_study_id: Literal["m3-controlled-contract-study-v1"]
+    revision: Literal["r2"]
+    study_status: Literal["fixed_panel_corrective_replication_after_oracle_erratum"]
+    prospective_status: Literal["not_pristine_prospective_or_confirmatory_evidence"]
+    repair_scope: Literal["h05_pending_approval_fixture_separation_only"]
+    original_abort_record_path: Literal["reports/m3-controlled-contract-study-v1-abort.json"]
+    original_abort_record_sha256: Sha256
+    r1_erratum_record_path: Literal[
+        "reports/m3-controlled-contract-study-v1r1-h05-oracle-erratum.json"
+    ]
+    r1_erratum_record_sha256: Sha256
+    invalidated_r1_git_commit: Literal["5646280dde25bd89330ef294252b169f9bb44635"]
+    invalidated_r1_protocol_sha256: Literal[
+        "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a"
+    ]
+    invalidated_r1_artifact_set_sha256: Literal[
+        "f6c966fcaabde7b12e50b36b8b69fa17d7fef8d457ad5a8b561ac9774c9c23d7"
+    ]
+    invalidated_r1_study_result_sha256: Literal[
+        "5cb1ac330ce178877e355df068be7c325b6596a3ee84582f89f49840b869782f"
+    ]
+    invalidated_r1_suite_sha256: Literal[
+        "3659bb8bfcae05ae7215cb4bc8bae8e6b1b225a9ed0f17c85185ce6c4de19a99"
+    ]
+    corrected_r2_suite_sha256: Literal[
+        "b5403fb934c4ca70cbc1afbb3bff08729a88a7a261fadff8a0a663d670662d7b"
+    ]
+    invalidated_r1_complete_cells: Literal[24]
+    invalidated_r1_h05_task_runs: Literal[24]
+    prior_r1_outcomes_excluded_from_r2: Literal[True]
+    prior_r1_conclusions_withdrawn: Literal[True]
+    outcome_exposure_preceded_correction: Literal[True]
+    model_facing_prompts_unchanged: Literal[True]
+    system_prompts_unchanged: Literal[True]
+    evaluator_unchanged: Literal[True]
+    gates_unchanged: Literal[True]
+    sampling_unchanged: Literal[True]
+    model_stacks_unchanged: Literal[True]
+    request_bodies_unchanged: Literal[True]
     rerun_all_cells_from_one_new_clean_commit: Literal[True]
 
 
 class StudySpec(StrictModel):
-    schema_version: Literal["1.1"]
+    schema_version: Literal["1.2"]
     study_id: Slug
-    preregistered_date: Annotated[str, Field(strict=True, pattern=r"^\d{4}-\d{2}-\d{2}$")]
-    design_frozen_before_model_runs: Literal[True]
+    protocol_frozen_date: Annotated[str, Field(strict=True, pattern=r"^\d{4}-\d{2}-\d{2}$")]
+    protocol_frozen_before_this_revision_runs: Literal[True]
     lineage: StudyLineage
     hypotheses: StudyHypotheses
     hypothesis_decision_criteria: HypothesisDecisionCriteria
@@ -267,8 +296,10 @@ class StudySpec(StrictModel):
 
     @model_validator(mode="after")
     def validate_matrix(self) -> StudySpec:
-        if self.study_id != "m3-controlled-contract-study-v1r1":
-            raise ValueError("the repaired study ID must be m3-controlled-contract-study-v1r1")
+        if self.study_id != "m3-controlled-contract-study-v1r2":
+            raise ValueError("the corrective study ID must be m3-controlled-contract-study-v1r2")
+        if self.dataset.suite_sha256 != self.lineage.corrected_r2_suite_sha256:
+            raise ValueError("corrected suite hash must match the r2 lineage")
         if self.contracts != (PromptContractVersion.V1, PromptContractVersion.V2):
             raise ValueError("contracts must be pinned in v1, v2 order")
         if set(self.system_prompt_sha256) != set(self.contracts):
@@ -286,7 +317,7 @@ class StudySpec(StrictModel):
             * len(self.dataset.task_ids)
         )
         if stochastic_runs != self.gates.required_stochastic_task_runs:
-            raise ValueError("the preregistered stochastic matrix must contain 160 task runs")
+            raise ValueError("the protocol-defined stochastic matrix must contain 160 task runs")
         for model in self.models:
             request_config = AgentRunConfig(
                 policy=self.policy,
@@ -412,9 +443,9 @@ class PairedContractComparison(StrictModel):
     ]
     mean_task_delta: Annotated[float, Field(strict=True, ge=-1, le=1, allow_inf_nan=False)]
     inference_note: Literal[
-        "The eight tasks, nested in three constructed fixture worlds, are the conditional "
-        "generalization units; seeds measure decoding stability. No IID confidence interval "
-        "or p-value is reported over the 40 paired runs."
+        "The eight fixed-panel tasks span four scenario fixtures across three entity-world "
+        "clusters and are the conditional generalization units; seeds measure decoding "
+        "stability. No IID confidence interval or p-value is reported over the 40 paired runs."
     ]
 
 
@@ -448,8 +479,9 @@ class StudyReport(StrictModel):
     hypothesis_checks: tuple[HypothesisCheck, ...]
     hypothesis_verdicts: dict[HypothesisName, bool]
     inference_note: Literal[
-        "Promotion gates use only the 160 preregistered stochastic task runs. "
-        "The 32 greedy-anchor task runs are descriptive and excluded from promotion decisions."
+        "Promotion gates use only the 160 protocol-defined stochastic task runs in this "
+        "fixed-panel corrective replication. The 32 greedy-anchor task runs are descriptive "
+        "and excluded from promotion decisions."
     ]
 
     @model_validator(mode="after")

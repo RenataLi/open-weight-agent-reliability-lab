@@ -20,7 +20,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PROTOCOL_PATH = PROJECT_ROOT / "studies" / "m3_protocol.json"
 
 
-def test_preregistered_plan_has_stable_complete_cartesian_matrix() -> None:
+def test_corrective_plan_has_stable_complete_cartesian_matrix() -> None:
     spec = load_study_spec(PROTOCOL_PATH)
     first = build_study_plan(spec)
     second = build_study_plan(spec)
@@ -28,7 +28,7 @@ def test_preregistered_plan_has_stable_complete_cartesian_matrix() -> None:
     assert first == second
     assert canonical_sha256(first) == canonical_sha256(second)
     assert canonical_sha256(first) == (
-        "97768faf6f46f379b40ed029460e8e3de416a2cf77f11963fa244332f28c3466"
+        "79643efdcbf65ed8171518f7c66dc2a1dae530aaf04645a5cb7a14d0dc5d7af8"
     )
     assert len(first.cells) == 24
     assert len({cell.cell_id for cell in first.cells}) == 24
@@ -51,16 +51,26 @@ def test_protocol_hash_and_every_pinned_input_are_reproducible() -> None:
     verify_study_inputs(spec, PROJECT_ROOT)
 
     assert canonical_sha256(spec) == (
-        "1d92852c8149a19c4b657bd3f59e82370f1612b752bfaaed1cf104ca102f731a"
+        "5dee1a3fc9f815a04a1c6ea06b4a52cb431831e062f649e54d01c5a4dc586b77"
     )
-    assert spec.schema_version == "1.1"
-    assert spec.study_id == "m3-controlled-contract-study-v1r1"
-    assert spec.lineage.parent_study_id == "m3-controlled-contract-study-v1"
-    assert spec.lineage.prospective_status == "not_pristine_first_pass_prospective"
-    assert spec.lineage.prior_outcomes_excluded_from_r1 is True
-    assert spec.dataset.fixture_worlds == 3
-    assert spec.dataset.suite_sha256 == (
+    assert spec.schema_version == "1.2"
+    assert spec.study_id == "m3-controlled-contract-study-v1r2"
+    assert spec.protocol_frozen_before_this_revision_runs is True
+    assert spec.lineage.parent_study_id == "m3-controlled-contract-study-v1r1"
+    assert spec.lineage.root_study_id == "m3-controlled-contract-study-v1"
+    assert spec.lineage.prospective_status == "not_pristine_prospective_or_confirmatory_evidence"
+    assert spec.lineage.prior_r1_outcomes_excluded_from_r2 is True
+    assert spec.lineage.outcome_exposure_preceded_correction is True
+    assert spec.lineage.invalidated_r1_suite_sha256 == (
         "3659bb8bfcae05ae7215cb4bc8bae8e6b1b225a9ed0f17c85185ce6c4de19a99"
+    )
+    assert spec.lineage.corrected_r2_suite_sha256 == (
+        "b5403fb934c4ca70cbc1afbb3bff08729a88a7a261fadff8a0a663d670662d7b"
+    )
+    assert spec.dataset.scenario_fixtures == 4
+    assert spec.dataset.entity_worlds == 3
+    assert spec.dataset.suite_sha256 == (
+        "b5403fb934c4ca70cbc1afbb3bff08729a88a7a261fadff8a0a663d670662d7b"
     )
     assert spec.dataset.prompt_set_sha256 == (
         "4e11bedb86ca59aadccc3b36fb1487e681edbe74c774ad8f014ef1655c8d1699"
@@ -108,11 +118,46 @@ def test_abort_record_discloses_complete_partial_and_unrun_cells() -> None:
     )
 
 
+def test_r1_oracle_erratum_withdraws_conclusions_and_requires_full_r2() -> None:
+    record = json.loads(
+        (
+            PROJECT_ROOT / "reports" / "m3-controlled-contract-study-v1r1-h05-oracle-erratum.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert record["affected_study"]["study_id"] == "m3-controlled-contract-study-v1r1"
+    assert record["affected_study"]["complete_cells"] == 24
+    assert record["defect"]["unreachable_by_construction"] is True
+    assert record["observed_impact"]["affected_task_runs"] == 24
+    assert record["observed_impact"]["failed_check_counts"] == {"required_calls": 24}
+    assert record["validity"]["aggregate_conclusion_permitted"] is False
+    assert record["validity"]["hypothesis_conclusion_permitted"] is False
+    assert record["validity"]["promotion_conclusion_permitted"] is False
+    assert record["correction"]["model_facing_prompt_changes"] is False
+    assert record["correction"]["evaluator_changes"] is False
+    assert record["correction"]["invalidated_r1_suite_sha256"] == (
+        "3659bb8bfcae05ae7215cb4bc8bae8e6b1b225a9ed0f17c85185ce6c4de19a99"
+    )
+    assert record["correction"]["corrected_r2_suite_sha256"] == (
+        "b5403fb934c4ca70cbc1afbb3bff08729a88a7a261fadff8a0a663d670662d7b"
+    )
+    assert record["corrective_replication_policy"]["rerun_all_24_cells"] is True
+    assert record["corrective_replication_policy"]["mix_r1_and_r2_cells"] is False
+
+
 def test_protocol_rejects_posthoc_gate_relaxation() -> None:
     raw = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
     raw["gates"]["min_model_pass_rate"] = 0.79
 
     with pytest.raises(ValidationError, match="thresholds are frozen"):
+        StudySpec.model_validate(raw)
+
+
+def test_protocol_rejects_suite_hash_detached_from_r2_lineage() -> None:
+    raw = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    raw["dataset"]["suite_sha256"] = "0" * 64
+
+    with pytest.raises(ValidationError, match="corrected suite hash must match"):
         StudySpec.model_validate(raw)
 
 
@@ -152,8 +197,17 @@ def test_protocol_rejects_native_mistral_with_qwen_template_kwargs() -> None:
 
 def test_protocol_rejects_tampered_abort_record_hash() -> None:
     raw = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
-    raw["lineage"]["abort_record_sha256"] = "0" * 64
+    raw["lineage"]["original_abort_record_sha256"] = "0" * 64
     spec = StudySpec.model_validate(raw)
 
-    with pytest.raises(ValueError, match="abort record does not match"):
+    with pytest.raises(ValueError, match="harness-abort record does not match"):
+        verify_study_inputs(spec, PROJECT_ROOT)
+
+
+def test_protocol_rejects_tampered_r1_erratum_record_hash() -> None:
+    raw = json.loads(PROTOCOL_PATH.read_text(encoding="utf-8"))
+    raw["lineage"]["r1_erratum_record_sha256"] = "0" * 64
+    spec = StudySpec.model_validate(raw)
+
+    with pytest.raises(ValueError, match="oracle-erratum record does not match"):
         verify_study_inputs(spec, PROJECT_ROOT)

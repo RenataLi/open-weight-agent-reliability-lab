@@ -4,6 +4,20 @@ All notable project changes will be documented here.
 
 ## [Unreleased]
 
+### Corrective study revision
+
+- withdrew the completed `m3-controlled-contract-study-v1r1` aggregate after a post-run audit
+  proved that H05's required pending-approval result was unreachable for the model-facing oracle;
+- preserved all 24 r1 cells and their protocol, plan, result, report, and artifact-set hashes in a
+  machine-readable erratum without retroactive regrading;
+- split the catalog approval scenario into pending-only and approved-only fixture variants, while
+  leaving model-facing task prompts, system prompts, evaluator, gates, sampling, model stacks, and
+  request bodies unchanged;
+- added cross-layer reference evaluation through the real agent outcome oracle and rejected
+  duplicate approval intent digests within every M3 fixture;
+- froze `m3-controlled-contract-study-v1r2` as a new 24-cell, one-commit, separate-root corrective
+  replication, explicitly not pristine prospective or confirmatory evidence.
+
 ### Repaired study revision
 
 - archived `m3-controlled-contract-study-v1` after one complete 3/8 cell, one partial cell, and 22

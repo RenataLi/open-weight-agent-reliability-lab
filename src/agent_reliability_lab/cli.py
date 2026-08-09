@@ -56,9 +56,9 @@ DEFAULT_SUITE = Path("benchmarks/smoke_suite.json")
 DEFAULT_PROMPTS = Path("benchmarks/model_prompts_v1.json")
 DEFAULT_DEPLOYMENT_COMPOSE = Path("deploy/compose.gpu.yml")
 DEFAULT_STUDY_PROTOCOL = Path("studies/m3_protocol.json")
-DEFAULT_STUDY_CELLS = Path("runs/m3-controlled-contract-study-v1r1/cells")
+DEFAULT_STUDY_CELLS = Path("runs/m3-controlled-contract-study-v1r2/cells")
 agent_app = typer.Typer(help="Run real model-driven evaluations against the simulator.")
-study_app = typer.Typer(help="Validate, plan, and aggregate a preregistered model study.")
+study_app = typer.Typer(help="Validate, plan, and aggregate a fixed model-study protocol.")
 app.add_typer(agent_app, name="agent")
 app.add_typer(study_app, name="study")
 
@@ -495,7 +495,7 @@ def study_plan(
         typer.Option("--json", help="Emit the complete plan to stdout."),
     ] = False,
 ) -> None:
-    """Expand the preregistered Cartesian matrix in execution order."""
+    """Expand the protocol-defined Cartesian matrix in execution order."""
 
     try:
         _, plan = _load_verified_study(protocol_path)
@@ -533,7 +533,7 @@ def study_report(
         typer.Option("--output-dir", help="Destination for aggregate JSON and Markdown."),
     ] = None,
 ) -> None:
-    """Fail closed on a partial matrix, then compute preregistered gates and paired metrics."""
+    """Fail closed on a partial matrix, then compute fixed gates and paired metrics."""
 
     try:
         spec, plan = _load_verified_study(protocol_path)
@@ -643,7 +643,7 @@ def agent_run(
         str | None,
         typer.Option(
             "--study-protocol-sha256",
-            help="Canonical preregistered protocol hash recorded in the manifest.",
+            help="Canonical fixed-protocol hash recorded in the manifest.",
         ),
     ] = None,
     chat_template_mode: Annotated[

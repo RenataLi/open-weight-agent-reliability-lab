@@ -43,15 +43,22 @@ reference trajectories are not model results.
 > 5/5; `S06_APPROVED_ROLLBACK` passed 0/5, so the conjunctive promotion gate remains **false**.
 > See the [full result and failure analysis](reports/qwen35-9b-policy-aware-r5.md).
 
-## Milestone 3 repaired-study preregistration
+## Milestone 3 corrective replication
 
-M3 repaired study `v1r1` is frozen and pending. Original v1 stopped after a generic harness
-serialization defect: one complete 3/8 cell is excluded, one cell is partial, and 22 cells were
-never run, so there is no aggregate or promotion conclusion. The repaired run is transparently a
-confirmatory rerun, not a pristine first-pass prospective study. Its holdout, prompt contracts,
-evaluator, gates, sampling, models, and request bodies are unchanged; only JSON-safe serialization
-of rejected tool arguments was repaired. See the [repaired-study preregistration](docs/M3_STUDY.md)
-and [sanitized abort record](reports/m3-controlled-contract-study-v1-abort.md).
+M3 study `v1r2` is frozen and pending as a full fixed-panel corrective replication. Original v1
+stopped after a generic harness serialization defect. The complete v1r1 rerun was then invalidated
+when the post-run audit proved that H05's model-facing approval result was unreachable: pending and
+approved decisions shared one intent binding, and deterministic ID ordering always returned the
+approved record. Its 24 cells remain immutable, but no aggregate, hypothesis, or promotion
+conclusion is accepted from them.
+
+R2 separates the pending-only and approved-only fixture variants and adds cross-layer oracle
+reachability plus unique-intent regressions. Model-facing prompts, system contracts, evaluator,
+gates, sampling, model stacks, and request bodies are unchanged. All 24 cells will be rerun from
+one new clean commit; old cells are never spliced into the corrected result. This is deliberately
+reported as post-erratum replication, not pristine prospective evidence. See the
+[r2 protocol](docs/M3_STUDY.md), [v1 abort record](reports/m3-controlled-contract-study-v1-abort.md),
+and [v1r1 oracle erratum](reports/m3-controlled-contract-study-v1r1-h05-oracle-erratum.md).
 
 ## Frozen local-model result
 
@@ -102,8 +109,9 @@ uv run agent-reliability-lab smoke
 uv run pytest
 ```
 
-The frozen M2 implementation passes **147 tests** with 89.15% coverage; Ruff and strict mypy are
-clean. The deterministic reference suite remains 12/12.
+The current M3 r2 implementation passes **204 tests** with **87.69% coverage**; Ruff and strict
+mypy are clean. The deterministic reference suite remains 12/12, and the corrected M3 reference
+panel passes 8/8 through both its reference grader and model-facing outcome oracle.
 
 On the prepared Windows workstation, the project-local bootstrap is also available:
 
@@ -213,7 +221,7 @@ src/agent_reliability_lab/
 ├── policy/        fail-closed approval evaluation
 ├── providers/     provider protocol and OpenAI-compatible httpx adapter
 ├── simulator/     deterministic execution, faults, hashing, and invariants
-├── study/         preregistered matrix, paired summaries, and promotion gates
+├── study/         protocol-defined matrix, paired summaries, and promotion gates
 ├── tasks/         benchmark schema, runtime, and reference evaluator
 ├── tools/         typed schemas, handlers, and registry
 └── cli.py         reference and real-model commands
@@ -224,7 +232,7 @@ reports/            sanitized tracked results; raw transcripts remain local
 
 - **M1 — deterministic core:** complete.
 - **M2 — local model boundary and runner:** complete; frozen local GPU evidence reported.
-- **M3 — controlled study:** repaired confirmatory rerun frozen; eligible aggregate results pending.
+- **M3 — controlled study:** H05 erratum recorded; full fixed-panel r2 replication frozen and pending.
 - **M4 — production surface:** service API, observability, dashboards, and demo.
 
 ## Scope and limitations

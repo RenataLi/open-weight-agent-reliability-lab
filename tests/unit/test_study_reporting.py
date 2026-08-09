@@ -261,7 +261,14 @@ def test_report_uses_paired_contract_metrics_and_excludes_greedy_from_gates() ->
     assert comparison.v2_losses == 1
     assert comparison.pass_rate_delta == pytest.approx(3 / 40)
     assert "No IID confidence interval" in comparison.inference_note
-    assert "Greedy-anchor task runs: 32" in render_markdown_report(report)
+    assert "four scenario fixtures across three entity-world clusters" in (
+        comparison.inference_note
+    )
+    rendered = render_markdown_report(report)
+    assert "M3 fixed-panel corrective replication" in rendered
+    assert "Protocol-defined hypothesis decisions" in rendered
+    assert "Preregistered hypothesis decisions" not in rendered
+    assert "Greedy-anchor task runs: 32" in rendered
     assert report.hypothesis_verdicts == {
         HypothesisName.PRIMARY: True,
         HypothesisName.CROSS_MODEL: True,
